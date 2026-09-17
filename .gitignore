@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.local
+.env*
+.claude/
+
+# Never published: this repository is public.
+# private/      project notes, client names, local guard terms
+# library/raw/  text extracted from regulation PDFs (copyrighted)
+# datapacks/    the user's licensed tables and templates
+private/
+library/raw/
+datapacks/
