@@ -2,7 +2,7 @@
  * Where a fact comes from. A 'user-note' is kept for reference only — for example a checklist made
  * with an AI tool — and can never back a calculation or a check.
  */
-export type SourceType = 'authority' | 'standard' | 'manufacturer' | 'project' | 'user-note';
+export type SourceType = 'authority' | 'provider' | 'standard' | 'manufacturer' | 'project' | 'user-note';
 
 /** Whether the edition held has been confirmed as the one in force. */
 export type SourceStatus = 'current' | 'superseded' | 'unverified';
@@ -38,7 +38,10 @@ export interface Clause {
   sourceId: string;
   /** The document's own reference, e.g. a clause, table or section number. */
   ref: string;
+  /** PDF page number, as a viewer shows it. */
   page: number | null;
+  /** The page number printed on the document, when it differs from the PDF page. */
+  pageLabel: string;
   title: string;
   /** A short paraphrase in our own words, never the document's text. */
   summary: string;
@@ -47,6 +50,8 @@ export interface Clause {
   status: ClauseStatus;
   reviewedOn: string;
   reviewNote: string;
+  /** Fingerprint of the content the user reviewed; a library update that changes it reopens review. */
+  reviewedHash: string;
 }
 
 export interface ItemAttribute {
@@ -69,6 +74,7 @@ export interface Item {
 
 export const SOURCE_TYPE_LABEL: Record<SourceType, string> = {
   authority: 'Authority',
+  provider: 'Service provider',
   standard: 'Standard',
   manufacturer: 'Manufacturer',
   project: 'Project requirement',

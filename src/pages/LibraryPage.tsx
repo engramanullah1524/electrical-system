@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, today } from '../db/db';
+import { clauseHash } from '../library/pack';
 import { formatParams, parseParams } from '../library/params';
 import {
   SOURCE_STATUS_LABEL,
@@ -18,7 +19,9 @@ export function LibraryPage() {
   const sources = useLiveQuery(() => db.sources.orderBy('id').toArray(), [], []);
   const clauses = useLiveQuery(() => db.clauses.toArray(), [], []);
   const sourceById = new Map(sources.map((s) => [s.id, s]));
-  const candidates = clauses.filter((c) => c.status === 'candidate');
+  const candidates = clauses
+    .filter((c) => c.status === 'candidate')
+    .sort((a, b) => a.sourceId.localeCompare(b.sourceId) || (a.page ?? 0) - (b.page ?? 0));
   const reviewed = clauses.filter((c) => c.status !== 'candidate');
 
   const labels: Record<View, string> = {
@@ -52,6 +55,12 @@ function sourceLabel(source?: Source) {
   return [source.title, source.edition].filter(Boolean).join(', ');
 }
 
+function pageText(clause: Clause) {
+  if (!clause.page) return '';
+  const printed = clause.pageLabel && clause.pageLabel !== String(clause.page) ? ` (printed ${clause.pageLabel})` : '';
+  return ` · PDF page ${clause.page}${printed}`;
+}
+
 function ReviewQueue({ clauses, sourceById }: { clauses: Clause[]; sourceById: Map<string, Source> }) {
   if (clauses.length === 0) return <p className="muted">Nothing is waiting for review.</p>;
   return (
@@ -65,8 +74,14 @@ function ReviewQueue({ clauses, sourceById }: { clauses: Clause[]; sourceById: M
 
 function ReviewCard({ clause, source }: { clause: Clause; source?: Source }) {
   const [note, setNote] = useState('');
+  // The fingerprint records exactly what was checked, so a later library change reopens review.
   const decide = (status: 'verified' | 'rejected') =>
-    db.clauses.update(clause.id, { status, reviewedOn: today(), reviewNote: note.trim() });
+    db.clauses.update(clause.id, {
+      status,
+      reviewedOn: today(),
+      reviewNote: note.trim(),
+      reviewedHash: clauseHash(clause),
+    });
   const link = source?.url ? `${source.url}${clause.page ? `#page=${clause.page}` : ''}` : '';
   const isNote = source?.type === 'user-note';
 
@@ -75,8 +90,9 @@ function ReviewCard({ clause, source }: { clause: Clause; source?: Source }) {
       <strong>{clause.ref}</strong> {clause.title && `— ${clause.title}`}
       <div className="meta">
         {sourceLabel(source)}
-        {clause.page ? ` · page ${clause.page}` : ''}
+        {pageText(clause)}
       </div>
+      {clause.reviewNote && <p className="warn">{clause.reviewNote}</p>}
       <p>{clause.summary}</p>
       {clause.params.length > 0 && <pre className="params">{formatParams(clause.params)}</pre>}
       {link ? (
@@ -85,6 +101,12 @@ function ReviewCard({ clause, source }: { clause: Clause; source?: Source }) {
         </a>
       ) : (
         source?.localPath && <div className="meta">Your copy: {source.localPath}</div>
+      )}
+      {source?.notes && (
+        <details>
+          <summary>About this source</summary>
+          <p className="meta">{source.notes}</p>
+        </details>
       )}
       <label>
         What you checked
@@ -207,6 +229,7 @@ function ClausesView({
   const [sourceId, setSourceId] = useState('');
   const [ref, setRef] = useState('');
   const [page, setPage] = useState('');
+  const [pageLabel, setPageLabel] = useState('');
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [paramText, setParamText] = useState('');
@@ -222,6 +245,7 @@ function ClausesView({
       sourceId,
       ref: ref.trim(),
       page: page ? Number(page) : null,
+      pageLabel: pageLabel.trim(),
       title: title.trim(),
       summary: summary.trim(),
       params: parsed.params,
@@ -229,9 +253,11 @@ function ClausesView({
       status: 'candidate',
       reviewedOn: '',
       reviewNote: '',
+      reviewedHash: '',
     });
     setRef('');
     setPage('');
+    setPageLabel('');
     setTitle('');
     setSummary('');
     setParamText('');
@@ -257,8 +283,12 @@ function ClausesView({
             <input required value={ref} onChange={(e) => setRef(e.target.value)} />
           </label>
           <label>
-            Page
+            PDF page
             <input type="number" min={1} value={page} onChange={(e) => setPage(e.target.value)} />
+          </label>
+          <label>
+            Printed page
+            <input value={pageLabel} onChange={(e) => setPageLabel(e.target.value)} />
           </label>
         </div>
         <label>
@@ -292,7 +322,7 @@ function ClausesView({
               <span className={`pill ${clause.status}`}>{clause.status}</span>
               <div className="meta">
                 {sourceLabel(sourceById.get(clause.sourceId))}
-                {clause.page ? ` · page ${clause.page}` : ''} · reviewed {clause.reviewedOn}
+                {pageText(clause)} · reviewed {clause.reviewedOn}
               </div>
               <p>{clause.summary}</p>
               {clause.params.length > 0 && <pre className="params">{formatParams(clause.params)}</pre>}

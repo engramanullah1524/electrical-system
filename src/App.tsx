@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import corePack from '../library/packs/core.json';
+import { applyPack } from './db/applyPack';
 import { db } from './db/db';
+import type { LibraryPack } from './library/pack';
 import { LibraryPage } from './pages/LibraryPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -17,6 +20,11 @@ function tabFromHash(): Tab {
 export function App() {
   const [tab, setTab] = useState<Tab>(tabFromHash);
   const awaitingReview = useLiveQuery(() => db.clauses.where('status').equals('candidate').count(), [], 0);
+
+  useEffect(() => {
+    // New library versions ship with the app; each device merges them without losing its reviews.
+    applyPack(corePack as LibraryPack).catch((error) => console.error(error));
+  }, []);
 
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());

@@ -23,6 +23,7 @@ const clause = (patch: Partial<Clause> = {}): Clause => ({
   sourceId: 's1',
   ref: '4.2',
   page: 12,
+  pageLabel: '10',
   title: 'Power factor',
   summary: 'Installations keep power factor at or above a stated minimum.',
   params: [{ key: 'pfMin', value: 0.9, unit: '' }],
@@ -30,6 +31,7 @@ const clause = (patch: Partial<Clause> = {}): Clause => ({
   status: 'verified',
   reviewedOn: '2026-01-02',
   reviewNote: 'Checked page 12',
+  reviewedHash: '',
   ...patch,
 });
 
