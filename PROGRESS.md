@@ -10,7 +10,7 @@ details are kept outside this public file, in the gitignored `private/NOTES.md`.
 | M1 | Foundation: PWA shell (phone + laptop), local database, library with review queue, sync client, public-repo guard, CI deploy | **Done 2026-09-17**, except the sync connection test on a real device |
 | M2 | Source registry: confirm current editions on official sites, extract PDF text locally, draft candidate clauses | **In progress**: first pack (7 sources, 26 clauses) done 2026-09-17 |
 | M3 | Load schedule engine (multi-building, standby, DF with source, headroom vs NOC) | **In progress**: engine, checks and audit done 2026-09-17; screens next |
-| M4 | Calculations: breakers, cables (private data pack), voltage drop, PF correction, fault level, generator check | To do |
+| M4 | Calculations: breakers, cables (private data pack), voltage drop, PF correction, fault level, generator check | Data pack started 2026-09-18 (see below) |
 | M5 | Pre-submission checks, approval pack exports, submission tracker | To do |
 | M6 | Item lookup slice and the pilot project | To do |
 
@@ -88,6 +88,24 @@ Later phases: 2 QA/QC, T&C, handover · 3 MTO and procurement · 4 site executio
   total, demand against standby and factor, and sheet totals against the sum of rows.
 - **Golden tests** run against a real DEWA-approved schedule, locally only. The engine reproduces
   every consistent sheet, and the audit finds exactly the errors identified independently.
+
+## M4 preparation (2026-09-18, local only)
+
+- Reference files are confirmed by the user by exact path; the list is in the gitignored private
+  notes. The rule: always ask which revision is the reference.
+- Private tools, all local:
+  - schedule audit for two consultant templates;
+  - PDF page triage (boilerplate / technical / comment / scanned / duplicate pages skipped);
+  - 250-dpi region rendering (PyMuPDF);
+  - cable datasheet extraction.
+- The cable data pack (gitignored `datapacks/`) holds 60 cable types from approved submittals.
+  - Every value keeps its sheet, page and printed rating conditions.
+  - Two values the maker printed inconsistently are marked disputed and are not used until the user
+    confirms them.
+  - Gaps:
+    - one brand's datasheets carry no current ratings;
+    - in-ground ratings assume a different soil resistivity than DBC Table G.3, so a sourced
+      correction is needed.
 
 ## Next step (M3 screens)
 
