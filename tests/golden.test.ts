@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { auditSchedule, type ScheduleRow, type ScheduleTotals } from '../src/design/audit';
 import { computeBoards } from '../src/design/engine';
-import { PHASES, type Board, type PointType } from '../src/design/types';
+import { PHASES, type Board } from '../src/design/types';
 
 /**
  * Golden check against a real DEWA-approved load schedule. The fixture holds client data, so it is
@@ -12,7 +12,7 @@ import { PHASES, type Board, type PointType } from '../src/design/types';
 const FIXTURE = 'private/fixtures/load-schedule-golden.json';
 
 interface Panel { name: string; ways: ScheduleRow[]; totals: ScheduleTotals }
-interface Flat { name: string; watts: number[]; circuits: { phase: 'R' | 'Y' | 'B'; counts: number[] }[]; totals: Record<'R' | 'Y' | 'B', number> }
+interface Flat { name: string; circuits: { phase: 'R' | 'Y' | 'B'; statedW: number }[]; totals: Record<'R' | 'Y' | 'B', number> }
 interface Finding { sheet: string; ref: string; kind: string; field: string }
 interface Fixture { panels: Panel[]; flats: Flat[]; findings: Finding[] }
 
@@ -84,15 +84,8 @@ describe.skipIf(!fixture)('golden: DEWA-approved schedule', () => {
     for (const ph of PHASES) if (consistent(ph)) expect(result.connected[ph]).toBeCloseTo(panel.totals[ph], 2);
   });
 
-  it.each((fixture?.flats ?? []).map((f) => [f.name, f] as const))('%s: point counts × watts give the approved phase loads', (name, flat) => {
-    const pointTypes: PointType[] = flat.watts.map((watts, i) => ({
-      id: `p${i}`,
-      label: `column ${i}`,
-      category: 'other',
-      watts,
-      socketsPerPoint: 1,
-      basis: { kind: 'declared', reason: 'as approved' },
-    }));
+  // Each circuit enters at the consultant's stated load, because rows carry their own watts per point.
+  it.each((fixture?.flats ?? []).map((f) => [f.name, f] as const))('%s: circuit loads add up to the approved phase totals', (name, flat) => {
     const board = boardFor(name);
     board.circuitDemandFactor = declared(0.7);
     board.circuits = flat.circuits.map((c, i) => ({
@@ -104,12 +97,12 @@ describe.skipIf(!fixture)('golden: DEWA-approved schedule', () => {
       wireMm2: null,
       eccMm2: null,
       area: '',
-      points: Object.fromEntries(c.counts.map((n, j) => [`p${j}`, n])),
-      equipmentW: 0,
+      points: {},
+      equipmentW: c.statedW,
       standby: false,
       remarks: '',
     }));
-    const result = computeBoards([board], pointTypes).get(name)!;
+    const result = computeBoards([board], []).get(name)!;
     for (const ph of PHASES) expect(result.connected[ph]).toBeCloseTo(flat.totals[ph], 3);
   });
 });
