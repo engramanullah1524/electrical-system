@@ -13,6 +13,20 @@ export type Basis = { kind: 'clause'; clauseId: string; key: string } | { kind: 
 export interface Factor {
   value: number;
   basis: Basis;
+  /**
+   * Link to an entry in the project's demand factor table. When set, the table's current value is
+   * used, so a factor agreed later with the consultant updates every way that uses it.
+   */
+  ref?: string;
+}
+
+/** One row of a project's editable demand factor table, with the history of every change. */
+export interface DemandFactorEntry {
+  id: string;
+  label: string;
+  value: number;
+  basis: Basis;
+  history: { value: number; basis: Basis; changedOn: string; reason: string }[];
 }
 
 /** Load groups for DEWA transformer demand, each with its own diversity factor in the library. */

@@ -1,4 +1,11 @@
-import { PHASES, type Board, type Circuit, type LoadCategory, type PhaseKW, type PointType } from './types';
+import { PHASES, type Board, type Circuit, type DemandFactorEntry, type Factor, type LoadCategory, type PhaseKW, type PointType } from './types';
+
+/** A factor's value, taken from the project's demand factor table when the factor links to it. */
+export function factorValue(factor: Factor, table?: Map<string, number>): number {
+  return factor.ref !== undefined && table?.has(factor.ref) ? table.get(factor.ref)! : factor.value;
+}
+
+export const factorTable = (entries: DemandFactorEntry[] = []) => new Map(entries.map((e) => [e.id, e.value]));
 
 export type CategoryKW = Record<LoadCategory | 'uncategorised', number>;
 const zeroCategories = (): CategoryKW => ({ chiller: 0, fahuPumpsLifts: 0, retail: 0, other: 0, uncategorised: 0 });
@@ -51,7 +58,7 @@ export interface BoardResult {
  * board's own circuits, or a direct load) and demands are then added upwards, times any further
  * factor a board declares for the boards it feeds.
  */
-export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<string, BoardResult> {
+export function computeBoards(boards: Board[], pointTypes: PointType[], factors?: Map<string, number>): Map<string, BoardResult> {
   const watts = new Map(pointTypes.map((t) => [t.id, t.watts]));
   const byId = new Map(boards.map((b) => [b.id, b]));
   const children = new Map<string, Board[]>();
@@ -89,7 +96,7 @@ export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<str
       if (!board.circuitDemandFactor) {
         issues.push(`${board.ref}: no demand factor is set for its circuits, so their maximum demand equals connected load.`);
       }
-      demandKW += circuitsKW * (board.circuitDemandFactor?.value ?? 1);
+      demandKW += circuitsKW * (board.circuitDemandFactor ? factorValue(board.circuitDemandFactor, factors) : 1);
     }
 
     let spareKW = 0;
@@ -99,7 +106,7 @@ export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<str
       const loadKW = totalKW(load.phaseKW);
       const standby = Math.min(Math.max(load.standbyKW, 0), loadKW);
       standbyKW += standby;
-      const loadDemand = (loadKW - standby) * load.demandFactor.value;
+      const loadDemand = (loadKW - standby) * factorValue(load.demandFactor, factors);
       demandKW += loadDemand;
       byCategory[load.category ?? 'uncategorised'] += loadKW - standby;
       if (load.kind === 'spare') {
@@ -113,7 +120,7 @@ export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<str
       connected = addKW(connected, result.connected);
       standbyKW += result.standbyKW;
       // Spare demand is carried separately so a main board can apply its own spare factor to it.
-      const childFactor = board.childFactor?.value ?? 1;
+      const childFactor = board.childFactor ? factorValue(board.childFactor, factors) : 1;
       demandKW += (result.demandKW - result.spareDemandKW) * childFactor + result.spareDemandKW;
       spareKW += result.spareKW;
       spareDemandKW += result.spareDemandKW;
@@ -122,8 +129,9 @@ export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<str
 
     if (board.spareFactor && spareKW > 0) {
       // Replace the spares' panel-level demand with the main board's factor on their capacity.
-      demandKW += spareKW * board.spareFactor.value - spareDemandKW;
-      spareDemandKW = spareKW * board.spareFactor.value;
+      const spareFactor = factorValue(board.spareFactor, factors);
+      demandKW += spareKW * spareFactor - spareDemandKW;
+      spareDemandKW = spareKW * spareFactor;
     }
 
     if (board.parentId && !byId.has(board.parentId)) issues.push(`${board.ref}: the board it is fed from no longer exists.`);

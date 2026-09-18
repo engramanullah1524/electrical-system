@@ -60,7 +60,9 @@ export function ProjectsPage() {
         <ul className="list">
           {projects.map((project) => (
             <li key={project.id} className="card">
-              <strong>{project.name}</strong>
+              <a href={`#/projects/${project.id}`}>
+                <strong>{project.name}</strong>
+              </a>
               <div className="meta">
                 {PERMIT_AUTHORITY_LABEL[project.permitAuthority]} · {project.buildings.length} building(s)
                 {project.buildings.length > 0 && `: ${project.buildings.join(', ')}`}

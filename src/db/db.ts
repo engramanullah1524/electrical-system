@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
+import type { Board } from '../design/types';
 import type { Clause, Item, Source } from '../library/types';
 import type { Project } from '../project/types';
 
@@ -13,6 +14,7 @@ export const db = new Dexie('electrical-system') as Dexie & {
   clauses: EntityTable<Clause, 'id'>;
   items: EntityTable<Item, 'id'>;
   projects: EntityTable<Project, 'id'>;
+  boards: EntityTable<Board, 'id'>;
   settings: EntityTable<Setting, 'key'>;
 };
 
@@ -23,5 +25,7 @@ db.version(1).stores({
   projects: 'id, name, updatedAt',
   settings: 'key',
 });
+
+db.version(2).stores({ boards: 'id, projectId, building, parentId' });
 
 export const today = () => new Date().toISOString().slice(0, 10);

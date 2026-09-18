@@ -171,3 +171,23 @@ describe('spare capacity', () => {
     expect(results.get('mdb')!.spareKW).toBeCloseTo(15, 10);
   });
 });
+
+describe('project demand factor table', () => {
+  it('uses the table value for linked factors, so one change updates every way', () => {
+    const linked = { value: 0.7, basis: { kind: 'declared' as const, reason: 'seed' }, ref: 'residentialSmdb' };
+    const boards = [
+      board({
+        id: 'lvp',
+        ref: 'LVP',
+        loads: [
+          load({ id: 'a', phaseKW: { R: 10, Y: 10, B: 10 }, demandFactor: linked }),
+          load({ id: 'b', phaseKW: { R: 10, Y: 10, B: 10 }, demandFactor: linked }),
+          load({ id: 'c', phaseKW: { R: 10, Y: 10, B: 10 }, demandFactor: declared(0.5) }),
+        ],
+      }),
+    ];
+    expect(computeBoards(boards, []).get('lvp')!.demandKW).toBeCloseTo(30 * 0.7 * 2 + 15, 10);
+    // After the consultant meeting the table entry changes to 0.6; unlinked factors stay as they are.
+    expect(computeBoards(boards, [], new Map([['residentialSmdb', 0.6]])).get('lvp')!.demandKW).toBeCloseTo(30 * 0.6 * 2 + 15, 10);
+  });
+});

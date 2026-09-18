@@ -1,6 +1,6 @@
 import { resolveFromClause, usableClause, type LibraryLookup } from '../library/provenance';
 import type { BoardResult } from './engine';
-import { circuitWatts } from './engine';
+import { circuitWatts, factorValue } from './engine';
 import { LOAD_CATEGORIES, LOAD_CATEGORY_LABEL, type Board, type CableKind, type Circuit, type Factor, type LoadCategory, type PointType } from './types';
 import { designCurrentA, dropPercent, lookup, tableFromParams, type VdTable } from './voltageDrop';
 
@@ -30,6 +30,8 @@ export interface DesignContext {
   nocKWByBuilding: Record<string, number>;
   /** Current used for sub-main voltage drop: the board's maximum demand, or its full connected load. */
   vdCurrentBasis: 'demand' | 'connected' | null;
+  /** The project's demand factor table (entry id → current value). */
+  factors?: Map<string, number>;
 }
 
 /**
@@ -89,14 +91,18 @@ export function runChecks(ctx: DesignContext): CheckResult[] {
     const factors: [string, Factor | null][] = [
       ['circuit demand factor', board.circuitDemandFactor],
       ['factor on sub-boards', board.childFactor],
+      ['factor on spare capacity', board.spareFactor],
       ...board.loads.map((l): [string, Factor | null] => [`demand factor of ${l.label}`, l.demandFactor]),
     ];
     for (const [label, factor] of factors) {
       if (!factor) continue;
       const id = `df:${board.id}:${label}`;
       if (!dfMax.ok) blocked(id, board.id, `${board.ref} ${label}`, dfMax.reason);
-      else if (factor.value > dfMax.value || factor.value < 0)
-        out.push({ id, boardId: board.id, status: 'fail', message: `${board.ref}: ${label} ${factor.value} is outside 0–${dfMax.value}.`, clauseIds: [dfMax.clauseId] });
+      else {
+        const value = factorValue(factor, ctx.factors);
+        if (value > dfMax.value || value < 0)
+          out.push({ id, boardId: board.id, status: 'fail', message: `${board.ref}: ${label} ${value} is outside 0–${dfMax.value}.`, clauseIds: [dfMax.clauseId] });
+      }
     }
   }
 

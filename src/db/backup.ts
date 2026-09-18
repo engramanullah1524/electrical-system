@@ -1,7 +1,7 @@
 import { db } from './db';
 
 // Settings are left out on purpose: they hold the sync token.
-const TABLES = ['sources', 'clauses', 'items', 'projects'] as const;
+const TABLES = ['sources', 'clauses', 'items', 'projects', 'boards'] as const;
 type TableName = (typeof TABLES)[number];
 
 interface Backup {

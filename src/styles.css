@@ -283,3 +283,88 @@ button:disabled {
 .pill.rejected {
   color: var(--bad);
 }
+
+h3 {
+  margin: 8px 0 0;
+  font-size: 1rem;
+}
+
+.row.between {
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Wide schedule tables scroll sideways on a phone instead of squeezing. */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table.grid {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+table.grid th,
+table.grid td {
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+table.grid input,
+table.grid select {
+  padding: 6px;
+  min-width: 90px;
+}
+
+table.grid input.num,
+input.num {
+  min-width: 64px;
+  width: 80px;
+}
+
+table.grid tr.selected {
+  background: var(--bg);
+}
+
+.factor-picker {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.missing {
+  border-color: var(--bad);
+}
+
+button.small {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+}
+
+button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.pill.fail {
+  color: var(--bad);
+}
+
+.pill.blocked,
+.pill.warn {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+}
+
+li.check {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
