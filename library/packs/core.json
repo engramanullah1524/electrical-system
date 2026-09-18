@@ -2,7 +2,7 @@
   "format": "electrical-system-library",
   "formatVersion": 1,
   "packId": "core",
-  "packVersion": "2026-09-17.1",
+  "packVersion": "2026-09-18.2",
   "sources": [
     {
       "id": "dm-dbc-2021",
@@ -94,6 +94,71 @@
       "status": "unverified",
       "checkedOn": "",
       "notes": "User's local copy only (one page). No edition, date or official link was found. Compare it with DEWA's current AMI templates before relying on it."
+    },
+    {
+      "id": "dewa-transformer-md-note",
+      "title": "Transformer diversity factors and maximum-demand limits (screenshot)",
+      "issuer": "DEWA (stated by the user; not printed on the document)",
+      "type": "authority",
+      "edition": "Not stated",
+      "date": "",
+      "url": "",
+      "localPath": "Screenshot supplied by the user on 2026-09-18 (kept in private references)",
+      "status": "unverified",
+      "checkedOn": "",
+      "notes": "Designated by the user on 2026-09-18 as the only basis for transformer diversity and maximum-demand limits. The screenshot ends: transformer size is decided from the load detail. No DEWA reference number or date is visible; add them when known."
+    },
+    {
+      "id": "dewa-reference-chart-b",
+      "title": "Cable, voltage-drop, earthing and metering reference chart (version with the 4×300 row)",
+      "issuer": "DEWA (stated by the user; not printed on the document)",
+      "type": "authority",
+      "edition": "Not stated",
+      "date": "",
+      "url": "",
+      "localPath": "Photo supplied by the user on 2026-09-18 (kept in private references)",
+      "status": "unverified",
+      "checkedOn": "",
+      "notes": "Designated by the user on 2026-09-18 as the reference for voltage drop per ampere per metre. Another version of the chart shows 4.0 instead of 4.8 at 10 mm² and was not chosen."
+    },
+    {
+      "id": "dewa-reference-chart-a",
+      "title": "Cable, voltage-drop, earthing and metering reference chart (version with the single-core wire row)",
+      "issuer": "DEWA (stated by the user; not printed on the document)",
+      "type": "authority",
+      "edition": "Not stated",
+      "date": "",
+      "url": "",
+      "localPath": "Photo supplied by the user on 2026-09-18 (kept in private references)",
+      "status": "unverified",
+      "checkedOn": "",
+      "notes": "Designated by the user on 2026-09-18 only for its extra voltage-drop row, which the user identified as single-core wires in conduit. Everything else on this version defers to the other chart."
+    },
+    {
+      "id": "doe-ewr-2020",
+      "title": "The Electricity Wiring Regulations (2020)",
+      "issuer": "Department of Energy (DoE), Abu Dhabi",
+      "type": "authority",
+      "edition": "Version 0, effective 01/04/2020 (document DoE/PD/R01/001)",
+      "date": "2020-04-01",
+      "url": "",
+      "localPath": "User's copy: EWR-2020-EN-V8-B Online.pdf (240 pages)",
+      "status": "unverified",
+      "checkedOn": "",
+      "notes": "An Abu Dhabi regulation. On 2026-09-18 the user designated its Appendix G2 example (PDF pages 195–197) as the basis for the demand factor of common-area (landlord) sub-main boards in Dubai projects. Copyright DoE Abu Dhabi: only short paraphrases are kept."
+    },
+    {
+      "id": "designer-demand-factors",
+      "title": "Demand factors by load type (designer practice designated by the user)",
+      "issuer": "The user, from a previously DEWA-approved project schedule",
+      "type": "project",
+      "edition": "Stated 2026-09-18",
+      "date": "2026-09-18",
+      "url": "",
+      "localPath": "",
+      "status": "unverified",
+      "checkedOn": "",
+      "notes": "Used for load-schedule maximum demand only. Transformer demand uses the DEWA transformer note instead (user's decision, 2026-09-18)."
     }
   ],
   "clauses": [
@@ -106,7 +171,10 @@
       "title": "How the Building Code relates to other Dubai regulations",
       "summary": "The Building Code replaces the building-design regulations of Dubai Municipality, DDA, Trakhees and DSOA. DEWA's building-design regulations are built into it or cross-referenced; SIRA requirements are summarised in Part J; TRA (telecom) rules are given in G.11; and the UAE Fire & Life Safety Code is cross-referenced throughout.",
       "params": [],
-      "tags": ["precedence", "authorities"]
+      "tags": [
+        "precedence",
+        "authorities"
+      ]
     },
     {
       "id": "dm-dbc-2021/A.4.2",
@@ -117,7 +185,10 @@
       "title": "Which edition of an international standard applies",
       "summary": "International codes and standards cited by the Building Code apply in their latest edition, unless the Code names a specific edition.",
       "params": [],
-      "tags": ["standards", "editions"]
+      "tags": [
+        "standards",
+        "editions"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.1",
@@ -128,7 +199,10 @@
       "title": "Basis of the electrical sections",
       "summary": "Sections G.4 to G.7 set the electrical design requirements and are based on the latest BS 7671 and IET guidance. 11 kV installations follow G.7. Anything these sections do not cover must be referred to DEWA for guidance.",
       "params": [],
-      "tags": ["scope", "bs 7671"]
+      "tags": [
+        "scope",
+        "bs 7671"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.2",
@@ -139,15 +213,48 @@
       "title": "Electrical supply characteristics",
       "summary": "DEWA supplies 230/400 V ±10%, 50 Hz, three-phase four-wire, with a separate neutral and protective conductor (normally the service cable armour). The neutral is earthed only at DEWA's substation, never inside the consumer installation. Design fault level in the substation is 40 kA for 1 s, except fuse-protected equipment. Overload, short-circuit and earth-leakage protection are required, plus protection against over-voltage, fluctuations, transients and harmonics, loss of phase and interruptions as the design needs.",
       "params": [
-        { "key": "nominalVoltageLN", "value": 230, "unit": "V" },
-        { "key": "nominalVoltageLL", "value": 400, "unit": "V" },
-        { "key": "voltageTolerancePercent", "value": 10, "unit": "%" },
-        { "key": "frequency", "value": 50, "unit": "Hz" },
-        { "key": "substationFaultLevel", "value": 40, "unit": "kA" },
-        { "key": "substationFaultDuration", "value": 1, "unit": "s" },
-        { "key": "neutralEarthedInInstallation", "value": false, "unit": "" }
+        {
+          "key": "nominalVoltageLN",
+          "value": 230,
+          "unit": "V"
+        },
+        {
+          "key": "nominalVoltageLL",
+          "value": 400,
+          "unit": "V"
+        },
+        {
+          "key": "voltageTolerancePercent",
+          "value": 10,
+          "unit": "%"
+        },
+        {
+          "key": "frequency",
+          "value": 50,
+          "unit": "Hz"
+        },
+        {
+          "key": "substationFaultLevel",
+          "value": 40,
+          "unit": "kA"
+        },
+        {
+          "key": "substationFaultDuration",
+          "value": 1,
+          "unit": "s"
+        },
+        {
+          "key": "neutralEarthedInInstallation",
+          "value": false,
+          "unit": ""
+        }
       ],
-      "tags": ["supply", "voltage", "fault level", "earthing"]
+      "tags": [
+        "supply",
+        "voltage",
+        "fault level",
+        "earthing"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.3",
@@ -157,8 +264,18 @@
       "pageLabel": "G 16",
       "title": "Supply availability, substation threshold and metering",
       "summary": "Confirm with DEWA that supply is available before building design starts. If the total connected load exceeds 400 kW, space for a DEWA substation must be provided in the building or plot; one may also be required below 400 kW. Meters must meet DEWA specifications and be DEWA-approved. Where there is no building tariff meter, each tenancy needs a sub-meter, and run-hour based virtual meters are not accepted.",
-      "params": [{ "key": "substationThresholdTCL", "value": 400, "unit": "kW" }],
-      "tags": ["substation", "metering", "supply"]
+      "params": [
+        {
+          "key": "substationThresholdTCL",
+          "value": 400,
+          "unit": "kW"
+        }
+      ],
+      "tags": [
+        "substation",
+        "metering",
+        "supply"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.6",
@@ -169,17 +286,57 @@
       "title": "Ambient design conditions",
       "summary": "Equipment must perform in Dubai conditions: 48 °C maximum ambient in shade, 2.8 °C minimum, 37.8 °C highest 24-hour average, 26.9 °C yearly average, humidity up to 100%, 0.07 g earthquake loading, 45 m/s wind at 10 m height, 40 °C ground temperature, and soil thermal resistivity 2.0 °C·m/W at 0.9 m depth. Heavy condensation and sandstorms also occur.",
       "params": [
-        { "key": "ambientMax", "value": 48, "unit": "°C" },
-        { "key": "ambientMin", "value": 2.8, "unit": "°C" },
-        { "key": "ambient24hAverageMax", "value": 37.8, "unit": "°C" },
-        { "key": "ambientYearlyAverage", "value": 26.9, "unit": "°C" },
-        { "key": "humidityMax", "value": 100, "unit": "%" },
-        { "key": "groundTemperature", "value": 40, "unit": "°C" },
-        { "key": "soilThermalResistivity", "value": 2, "unit": "°C·m/W" },
-        { "key": "soilResistivityDepth", "value": 0.9, "unit": "m" },
-        { "key": "windSpeedAt10m", "value": 45, "unit": "m/s" }
+        {
+          "key": "ambientMax",
+          "value": 48,
+          "unit": "°C"
+        },
+        {
+          "key": "ambientMin",
+          "value": 2.8,
+          "unit": "°C"
+        },
+        {
+          "key": "ambient24hAverageMax",
+          "value": 37.8,
+          "unit": "°C"
+        },
+        {
+          "key": "ambientYearlyAverage",
+          "value": 26.9,
+          "unit": "°C"
+        },
+        {
+          "key": "humidityMax",
+          "value": 100,
+          "unit": "%"
+        },
+        {
+          "key": "groundTemperature",
+          "value": 40,
+          "unit": "°C"
+        },
+        {
+          "key": "soilThermalResistivity",
+          "value": 2,
+          "unit": "°C·m/W"
+        },
+        {
+          "key": "soilResistivityDepth",
+          "value": 0.9,
+          "unit": "m"
+        },
+        {
+          "key": "windSpeedAt10m",
+          "value": 45,
+          "unit": "m/s"
+        }
       ],
-      "tags": ["ambient", "derating", "cables"]
+      "tags": [
+        "ambient",
+        "derating",
+        "cables"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.7.1",
@@ -190,7 +347,10 @@
       "title": "Cable types for fixed wiring",
       "summary": "Fixed wiring normally uses LSF/XLPE-insulated stranded copper cables to one of BS 5467, 6004, 6724, 7211, 7629-1, 7846, 7889 or 8436. PVC-insulated cable needs DEWA approval. Flexible cords are LSF to BS 7211, and single-core cables armoured with steel wire or tape must not be used on AC circuits.",
       "params": [],
-      "tags": ["cables", "materials"]
+      "tags": [
+        "cables",
+        "materials"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.7.2",
@@ -201,10 +361,21 @@
       "title": "Minimum conductor sizes",
       "summary": "Lighting circuit conductors must be at least 2.5 mm², and utility socket circuit conductors at least 4 mm².",
       "params": [
-        { "key": "minConductorLighting", "value": 2.5, "unit": "mm²" },
-        { "key": "minConductorSocket", "value": 4, "unit": "mm²" }
+        {
+          "key": "minConductorLighting",
+          "value": 2.5,
+          "unit": "mm²"
+        },
+        {
+          "key": "minConductorSocket",
+          "value": 4,
+          "unit": "mm²"
+        }
       ],
-      "tags": ["cables", "minimum size"]
+      "tags": [
+        "cables",
+        "minimum size"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.7.3",
@@ -214,8 +385,18 @@
       "pageLabel": "G 27",
       "title": "Current rating and voltage drop",
       "summary": "Size each cable to carry its circuit's normal current continuously for the actual laying conditions and maximum ambient temperature (BS 7769). Tables G.4 to G.6 give typical minimum sizes against breaker ratings; final selection uses manufacturers' data with correction factors and voltage drop. Voltage drop from the point of supply to any point must not exceed 4% of nominal voltage unless otherwise specified.",
-      "params": [{ "key": "vdMaxPercent", "value": 4, "unit": "%" }],
-      "tags": ["voltage drop", "cables", "derating"]
+      "params": [
+        {
+          "key": "vdMaxPercent",
+          "value": 4,
+          "unit": "%"
+        }
+      ],
+      "tags": [
+        "voltage drop",
+        "cables",
+        "derating"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.10",
@@ -226,7 +407,10 @@
       "title": "Load balancing",
       "summary": "On a three-phase supply, spread lighting, sockets, water heaters, single-phase AC units and other loads over the red, yellow and blue phases as evenly as possible at every distribution level. This clause gives no numeric limit for imbalance.",
       "params": [],
-      "tags": ["phase balance", "load schedule"]
+      "tags": [
+        "phase balance",
+        "load schedule"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.13.7",
@@ -237,10 +421,23 @@
       "title": "Water heaters, saunas, Jacuzzis and washing machines: control and isolation",
       "summary": "Control each with a suitably rated double-pole switch with neon indicator, and connect it through a flex outlet plate next to the equipment. A water heater in a bathroom or WC has its switch immediately outside the room; sauna and Jacuzzi control gear goes outside the room. Each item has its own final circuit from the DB, and every water heater circuit is protected by a 30 mA RCCB/ELCB.",
       "params": [
-        { "key": "rcdWaterHeaterCircuit", "value": 30, "unit": "mA" },
-        { "key": "separateFinalCircuit", "value": true, "unit": "" }
+        {
+          "key": "rcdWaterHeaterCircuit",
+          "value": 30,
+          "unit": "mA"
+        },
+        {
+          "key": "separateFinalCircuit",
+          "value": true,
+          "unit": ""
+        }
       ],
-      "tags": ["isolator", "water heater", "sauna", "rcd"]
+      "tags": [
+        "isolator",
+        "water heater",
+        "sauna",
+        "rcd"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.13.8",
@@ -251,12 +448,32 @@
       "title": "Air-conditioning units: control and circuits",
       "summary": "Window units with cooling capacity up to 1.5 kW connect through a 15 A switched socket outlet; other room AC units need a suitably rated double-pole switch with flex outlet beside the unit. Each unit has its own final circuit. A single-phase supply may carry at most two window units; three or more are balanced over three phases. Breaker and wire are sized to the unit's load, with a minimum of 20 A and 4 mm².",
       "params": [
-        { "key": "windowUnitMaxCoolingOnSocket", "value": 1.5, "unit": "kW" },
-        { "key": "acMinBreaker", "value": 20, "unit": "A" },
-        { "key": "acMinWire", "value": 4, "unit": "mm²" },
-        { "key": "maxWindowUnitsPerSinglePhase", "value": 2, "unit": "" }
+        {
+          "key": "windowUnitMaxCoolingOnSocket",
+          "value": 1.5,
+          "unit": "kW"
+        },
+        {
+          "key": "acMinBreaker",
+          "value": 20,
+          "unit": "A"
+        },
+        {
+          "key": "acMinWire",
+          "value": 4,
+          "unit": "mm²"
+        },
+        {
+          "key": "maxWindowUnitsPerSinglePhase",
+          "value": 2,
+          "unit": ""
+        }
       ],
-      "tags": ["isolator", "air conditioning", "circuits"]
+      "tags": [
+        "isolator",
+        "air conditioning",
+        "circuits"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.16.1",
@@ -267,21 +484,78 @@
       "title": "Assessing lighting and small-power loads",
       "summary": "Lighting and fan circuits: at most 2,000 W, at least 2.5 mm² LSF wire and ECC, breaker at most 16 A. Where fittings are not yet chosen, allow at least 100 W per lighting or fan point; fluorescent lamps count as 1.8 times lamp watts. A radial circuit serves up to five 13 A sockets (not in kitchens) on a 20 A breaker; a ring serves up to ten on 30 A. Count each 13 A socket circuit as 13 A demand and each general 13 A socket as at least 200 W (a twin counts as two). General-purpose 15 A sockets may be taken as 500 W each in residential premises (1,000 W commercial or industrial). Fixed appliances and AC use actual load; items of 5 VA or less may be left out.",
       "params": [
-        { "key": "lightingCircuitMaxLoad", "value": 2000, "unit": "W" },
-        { "key": "lightingCircuitMinWire", "value": 2.5, "unit": "mm²" },
-        { "key": "lightingCircuitMaxBreaker", "value": 16, "unit": "A" },
-        { "key": "lightingPointMinLoad", "value": 100, "unit": "W" },
-        { "key": "fluorescentLampFactor", "value": 1.8, "unit": "" },
-        { "key": "radialMaxSockets13A", "value": 5, "unit": "" },
-        { "key": "radialBreaker", "value": 20, "unit": "A" },
-        { "key": "ringMaxSockets13A", "value": 10, "unit": "" },
-        { "key": "ringBreaker", "value": 30, "unit": "A" },
-        { "key": "socket13APointMinLoad", "value": 200, "unit": "W" },
-        { "key": "socket15AResidentialLoad", "value": 500, "unit": "W" },
-        { "key": "socket15ACommercialLoad", "value": 1000, "unit": "W" },
-        { "key": "negligibleLoadMax", "value": 5, "unit": "VA" }
+        {
+          "key": "lightingCircuitMaxLoad",
+          "value": 2000,
+          "unit": "W"
+        },
+        {
+          "key": "lightingCircuitMinWire",
+          "value": 2.5,
+          "unit": "mm²"
+        },
+        {
+          "key": "lightingCircuitMaxBreaker",
+          "value": 16,
+          "unit": "A"
+        },
+        {
+          "key": "lightingPointMinLoad",
+          "value": 100,
+          "unit": "W"
+        },
+        {
+          "key": "fluorescentLampFactor",
+          "value": 1.8,
+          "unit": ""
+        },
+        {
+          "key": "radialMaxSockets13A",
+          "value": 5,
+          "unit": ""
+        },
+        {
+          "key": "radialBreaker",
+          "value": 20,
+          "unit": "A"
+        },
+        {
+          "key": "ringMaxSockets13A",
+          "value": 10,
+          "unit": ""
+        },
+        {
+          "key": "ringBreaker",
+          "value": 30,
+          "unit": "A"
+        },
+        {
+          "key": "socket13APointMinLoad",
+          "value": 200,
+          "unit": "W"
+        },
+        {
+          "key": "socket15AResidentialLoad",
+          "value": 500,
+          "unit": "W"
+        },
+        {
+          "key": "socket15ACommercialLoad",
+          "value": 1000,
+          "unit": "W"
+        },
+        {
+          "key": "negligibleLoadMax",
+          "value": 5,
+          "unit": "VA"
+        }
       ],
-      "tags": ["connected load", "load schedule", "lighting", "sockets"]
+      "tags": [
+        "connected load",
+        "load schedule",
+        "lighting",
+        "sockets"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.16.2",
@@ -292,11 +566,28 @@
       "title": "Maximum demand and DEWA schedule formats",
       "summary": "Every DB is rated for its total connected load before any demand factor. A final circuit's demand is the higher of the actual or assumed point loads, with diversity where appropriate. A qualified engineer may set the demand factor at main and sub-main level, and it must not exceed 1. Load distribution schedules go to DEWA in the formats of Tables G.11 to G.14; per the note to Table G.11, total connected load includes standby, spare and future provisions.",
       "params": [
-        { "key": "demandFactorMax", "value": 1, "unit": "" },
-        { "key": "dbRatedForTotalConnectedLoad", "value": true, "unit": "" },
-        { "key": "tclIncludesStandbySpareFuture", "value": true, "unit": "" }
+        {
+          "key": "demandFactorMax",
+          "value": 1,
+          "unit": ""
+        },
+        {
+          "key": "dbRatedForTotalConnectedLoad",
+          "value": true,
+          "unit": ""
+        },
+        {
+          "key": "tclIncludesStandbySpareFuture",
+          "value": true,
+          "unit": ""
+        }
       ],
-      "tags": ["maximum demand", "diversity", "load schedule", "dewa submission"]
+      "tags": [
+        "maximum demand",
+        "diversity",
+        "load schedule",
+        "dewa submission"
+      ]
     },
     {
       "id": "dm-dbc-2021/Table G.15",
@@ -307,17 +598,58 @@
       "title": "Maximum demand allowed at an MDB (no large motors)",
       "summary": "For normal residential and commercial premises without large motor loads, the maximum demand allowed at an MDB is 30 kW on a 60 A feeder, 50 kW on 100 A, 60 kW on 125 A, 80 kW on 160 A, 100 kW on 200 A, 150 kW on 300 A, 200 kW on 400 A, 800 kW on a 1,000 kVA transformer and 1,200 kW on a 1,500 kVA transformer.",
       "params": [
-        { "key": "mdLimitFeeder60A", "value": 30, "unit": "kW" },
-        { "key": "mdLimitFeeder100A", "value": 50, "unit": "kW" },
-        { "key": "mdLimitFeeder125A", "value": 60, "unit": "kW" },
-        { "key": "mdLimitFeeder160A", "value": 80, "unit": "kW" },
-        { "key": "mdLimitFeeder200A", "value": 100, "unit": "kW" },
-        { "key": "mdLimitFeeder300A", "value": 150, "unit": "kW" },
-        { "key": "mdLimitFeeder400A", "value": 200, "unit": "kW" },
-        { "key": "mdLimitTransformer1000kVA", "value": 800, "unit": "kW" },
-        { "key": "mdLimitTransformer1500kVA", "value": 1200, "unit": "kW" }
+        {
+          "key": "mdLimitFeeder60A",
+          "value": 30,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder100A",
+          "value": 50,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder125A",
+          "value": 60,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder160A",
+          "value": 80,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder200A",
+          "value": 100,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder300A",
+          "value": 150,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder400A",
+          "value": 200,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitTransformer1000kVA",
+          "value": 800,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitTransformer1500kVA",
+          "value": 1200,
+          "unit": "kW"
+        }
       ],
-      "tags": ["maximum demand", "transformer", "feeder", "dewa submission"]
+      "tags": [
+        "maximum demand",
+        "transformer",
+        "feeder",
+        "dewa submission"
+      ]
     },
     {
       "id": "dm-dbc-2021/Table G.16",
@@ -328,11 +660,29 @@
       "title": "Connected-load limits with motor and AC loads",
       "summary": "Where DEWA transformers feed motors and AC with no single load above 100 kW, connected load is limited to 950 kW on a 1,500 kVA transformer and 650 kW on 1,000 kVA. Any single load above 100 kW needs DEWA approval, judged on rating, starter type, starting current, number of compressors or motors and operating stages. LV panel and MDB incomer protection is set at the design current. Other maximum-demand methods are allowed if the method and the diversity at each level are submitted to DEWA and shown on the drawings and schedules.",
       "params": [
-        { "key": "tclLimitMotorTransformer1500kVA", "value": 950, "unit": "kW" },
-        { "key": "tclLimitMotorTransformer1000kVA", "value": 650, "unit": "kW" },
-        { "key": "singleMotorApprovalAbove", "value": 100, "unit": "kW" }
+        {
+          "key": "tclLimitMotorTransformer1500kVA",
+          "value": 950,
+          "unit": "kW"
+        },
+        {
+          "key": "tclLimitMotorTransformer1000kVA",
+          "value": 650,
+          "unit": "kW"
+        },
+        {
+          "key": "singleMotorApprovalAbove",
+          "value": 100,
+          "unit": "kW"
+        }
       ],
-      "tags": ["maximum demand", "motors", "chillers", "transformer", "dewa submission"]
+      "tags": [
+        "maximum demand",
+        "motors",
+        "chillers",
+        "transformer",
+        "dewa submission"
+      ]
     },
     {
       "id": "dm-dbc-2021/Table G.21",
@@ -343,20 +693,72 @@
       "title": "Recommended RCD (ELCB/RCCB) operating currents",
       "summary": "Recommended residual operating currents: 30 mA for 13 A sockets, water heaters, coolers, dishwashers, fridges, washing machines, domestic water pumps and general-purpose 15 A sockets; 10 mA for Jacuzzi pumps and underwater lighting; 30/100 mA general lighting; 100/300 mA flood lighting; 100 mA window or split AC, FCU/AHU/VAV, irrigation pumps and cookers; 100/300 mA package AC units and industrial machines; 100/500/1,000 mA chillers; 300/500 mA lifts, escalators and hoists; 300 mA neon signs. Confirm against the manufacturer's recommendations. Circuits may be grouped under one RCD, and fire-protection equipment that needs an uninterrupted supply should have an earth-leakage detection system with indication or alarm.",
       "params": [
-        { "key": "rcdSocket13A", "value": 30, "unit": "mA" },
-        { "key": "rcdWaterHeater", "value": 30, "unit": "mA" },
-        { "key": "rcdWashingMachine", "value": 30, "unit": "mA" },
-        { "key": "rcdDomesticWaterPump", "value": 30, "unit": "mA" },
-        { "key": "rcdJacuzziPump", "value": 10, "unit": "mA" },
-        { "key": "rcdUnderwaterLighting", "value": 10, "unit": "mA" },
-        { "key": "rcdSocket15AGeneral", "value": 30, "unit": "mA" },
-        { "key": "rcdWindowSplitAC", "value": 100, "unit": "mA" },
-        { "key": "rcdFanCoilAhuVav", "value": 100, "unit": "mA" },
-        { "key": "rcdIrrigationPump", "value": 100, "unit": "mA" },
-        { "key": "rcdCooker", "value": 100, "unit": "mA" },
-        { "key": "rcdNeonSign", "value": 300, "unit": "mA" }
+        {
+          "key": "rcdSocket13A",
+          "value": 30,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdWaterHeater",
+          "value": 30,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdWashingMachine",
+          "value": 30,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdDomesticWaterPump",
+          "value": 30,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdJacuzziPump",
+          "value": 10,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdUnderwaterLighting",
+          "value": 10,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdSocket15AGeneral",
+          "value": 30,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdWindowSplitAC",
+          "value": 100,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdFanCoilAhuVav",
+          "value": 100,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdIrrigationPump",
+          "value": 100,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdCooker",
+          "value": 100,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdNeonSign",
+          "value": 300,
+          "unit": "mA"
+        }
       ],
-      "tags": ["rcd", "earth leakage", "protection"]
+      "tags": [
+        "rcd",
+        "earth leakage",
+        "protection"
+      ]
     },
     {
       "id": "dm-dbc-2021/G.4.20.1",
@@ -367,13 +769,37 @@
       "title": "Power factor correction and capacitor banks",
       "summary": "Installation power factor must stay between 0.9 lagging and unity; 0.95 lagging is recommended. AC units, motors and discharge lighting must be corrected to at least 0.95 lagging. Where individual correction is not achieved, automatic stepped capacitor banks at main or sub-main level are required: for commercial premises on DEWA feeders of 200 A and above, and for residential premises the threshold is a 400 A feeder. Capacitors must be dry sealed units to IEC 61921, temperature class D, with automatic discharge, overcurrent protection for each bank, means of isolation and switching-duty contactors. A network study must check for resonance, and series harmonic filter reactors are tuned below the lowest harmonic present.",
       "params": [
-        { "key": "pfMin", "value": 0.9, "unit": "" },
-        { "key": "pfRecommended", "value": 0.95, "unit": "" },
-        { "key": "pfEquipmentMin", "value": 0.95, "unit": "" },
-        { "key": "capacitorBankFeederCommercial", "value": 200, "unit": "A" },
-        { "key": "capacitorBankFeederResidential", "value": 400, "unit": "A" }
+        {
+          "key": "pfMin",
+          "value": 0.9,
+          "unit": ""
+        },
+        {
+          "key": "pfRecommended",
+          "value": 0.95,
+          "unit": ""
+        },
+        {
+          "key": "pfEquipmentMin",
+          "value": 0.95,
+          "unit": ""
+        },
+        {
+          "key": "capacitorBankFeederCommercial",
+          "value": 200,
+          "unit": "A"
+        },
+        {
+          "key": "capacitorBankFeederResidential",
+          "value": 400,
+          "unit": "A"
+        }
       ],
-      "tags": ["power factor", "capacitor bank", "harmonics"]
+      "tags": [
+        "power factor",
+        "capacitor bank",
+        "harmonics"
+      ]
     },
     {
       "id": "dewa-rei-2017/1.2",
@@ -384,15 +810,47 @@
       "title": "Electric supply (see DBC G.4.2)",
       "summary": "Same supply characteristics as the Building Code G.4.2: 230/400 V ±10%, 50 Hz, three-phase four-wire with separate neutral and protective conductor; neutral earthed only at DEWA's substation; substation design fault level 40 kA for 1 s, except fuse-protected equipment.",
       "params": [
-        { "key": "nominalVoltageLN", "value": 230, "unit": "V" },
-        { "key": "nominalVoltageLL", "value": 400, "unit": "V" },
-        { "key": "voltageTolerancePercent", "value": 10, "unit": "%" },
-        { "key": "frequency", "value": 50, "unit": "Hz" },
-        { "key": "substationFaultLevel", "value": 40, "unit": "kA" },
-        { "key": "substationFaultDuration", "value": 1, "unit": "s" },
-        { "key": "neutralEarthedInInstallation", "value": false, "unit": "" }
+        {
+          "key": "nominalVoltageLN",
+          "value": 230,
+          "unit": "V"
+        },
+        {
+          "key": "nominalVoltageLL",
+          "value": 400,
+          "unit": "V"
+        },
+        {
+          "key": "voltageTolerancePercent",
+          "value": 10,
+          "unit": "%"
+        },
+        {
+          "key": "frequency",
+          "value": 50,
+          "unit": "Hz"
+        },
+        {
+          "key": "substationFaultLevel",
+          "value": 40,
+          "unit": "kA"
+        },
+        {
+          "key": "substationFaultDuration",
+          "value": 1,
+          "unit": "s"
+        },
+        {
+          "key": "neutralEarthedInInstallation",
+          "value": false,
+          "unit": ""
+        }
       ],
-      "tags": ["supply", "voltage", "fault level"]
+      "tags": [
+        "supply",
+        "voltage",
+        "fault level"
+      ]
     },
     {
       "id": "dewa-rei-2017/3.1.4",
@@ -402,8 +860,17 @@
       "pageLabel": "30",
       "title": "Substation provision (see DBC G.4.3)",
       "summary": "Where total connected load exceeds 400 kW, space for a DEWA substation must be provided in the building or plot; one may be needed below 400 kW. The requirement is confirmed in DEWA's No Objection Certificate, which must be revalidated when its stated period ends.",
-      "params": [{ "key": "substationThresholdTCL", "value": 400, "unit": "kW" }],
-      "tags": ["substation", "noc"]
+      "params": [
+        {
+          "key": "substationThresholdTCL",
+          "value": 400,
+          "unit": "kW"
+        }
+      ],
+      "tags": [
+        "substation",
+        "noc"
+      ]
     },
     {
       "id": "dewa-rei-2017/4.2.3",
@@ -413,8 +880,17 @@
       "pageLabel": "36",
       "title": "Cable rating and voltage drop (see DBC G.4.7.3)",
       "summary": "Cables must carry their circuit's normal current continuously for the laying conditions and maximum ambient (BS 7769); Appendix 5, Tables 1 to 3, give typical minimum selections. Voltage drop from the point of supply to any equipment must not exceed 4% of nominal voltage unless otherwise specified.",
-      "params": [{ "key": "vdMaxPercent", "value": 4, "unit": "%" }],
-      "tags": ["voltage drop", "cables"]
+      "params": [
+        {
+          "key": "vdMaxPercent",
+          "value": 4,
+          "unit": "%"
+        }
+      ],
+      "tags": [
+        "voltage drop",
+        "cables"
+      ]
     },
     {
       "id": "dewa-rei-2017/4.6.6",
@@ -425,12 +901,32 @@
       "title": "Control of air-conditioning units (compare DBC G.4.13.8)",
       "summary": "Window units with cooling capacity up to 18,000 Btu/hour connect through a 15 A switched socket outlet; other room units need a suitably rated double-pole switch with flex outlet beside the unit. Each unit has its own final circuit; at most two window units per single-phase supply; breaker and wire sized to the load with a minimum of 20 A and 4 mm². The Building Code G.4.13.8 states the socket limit as 1.5 kW instead of 18,000 Btu/hour, so confirm which figure applies.",
       "params": [
-        { "key": "windowUnitMaxCoolingOnSocket", "value": 18000, "unit": "Btu/h" },
-        { "key": "acMinBreaker", "value": 20, "unit": "A" },
-        { "key": "acMinWire", "value": 4, "unit": "mm²" },
-        { "key": "maxWindowUnitsPerSinglePhase", "value": 2, "unit": "" }
+        {
+          "key": "windowUnitMaxCoolingOnSocket",
+          "value": 18000,
+          "unit": "Btu/h"
+        },
+        {
+          "key": "acMinBreaker",
+          "value": 20,
+          "unit": "A"
+        },
+        {
+          "key": "acMinWire",
+          "value": 4,
+          "unit": "mm²"
+        },
+        {
+          "key": "maxWindowUnitsPerSinglePhase",
+          "value": 2,
+          "unit": ""
+        }
       ],
-      "tags": ["isolator", "air conditioning", "circuits"]
+      "tags": [
+        "isolator",
+        "air conditioning",
+        "circuits"
+      ]
     },
     {
       "id": "dewa-rei-2017/4.7.2",
@@ -441,20 +937,72 @@
       "title": "Maximum demand limits (see DBC Tables G.15 and G.16)",
       "summary": "DBs are rated for total connected load before any demand factor, which a qualified engineer works out; schedules follow Appendices 2 to 4. Guidance limits for maximum demand at an MDB without large motors: 30 kW on 60 A, 50 kW on 100 A, 60 kW on 125 A, 80 kW on 160 A, 100 kW on 200 A, 150 kW on 300 A, 200 kW on 400 A, 800 kW on a 1,000 kVA transformer and 1,200 kW on 1,500 kVA. With motor or AC loads each up to 100 kW, connected load is limited to 950 kW (1,500 kVA) or 650 kW (1,000 kVA); larger single loads need approval.",
       "params": [
-        { "key": "mdLimitFeeder60A", "value": 30, "unit": "kW" },
-        { "key": "mdLimitFeeder100A", "value": 50, "unit": "kW" },
-        { "key": "mdLimitFeeder125A", "value": 60, "unit": "kW" },
-        { "key": "mdLimitFeeder160A", "value": 80, "unit": "kW" },
-        { "key": "mdLimitFeeder200A", "value": 100, "unit": "kW" },
-        { "key": "mdLimitFeeder300A", "value": 150, "unit": "kW" },
-        { "key": "mdLimitFeeder400A", "value": 200, "unit": "kW" },
-        { "key": "mdLimitTransformer1000kVA", "value": 800, "unit": "kW" },
-        { "key": "mdLimitTransformer1500kVA", "value": 1200, "unit": "kW" },
-        { "key": "tclLimitMotorTransformer1500kVA", "value": 950, "unit": "kW" },
-        { "key": "tclLimitMotorTransformer1000kVA", "value": 650, "unit": "kW" },
-        { "key": "singleMotorApprovalAbove", "value": 100, "unit": "kW" }
+        {
+          "key": "mdLimitFeeder60A",
+          "value": 30,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder100A",
+          "value": 50,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder125A",
+          "value": 60,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder160A",
+          "value": 80,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder200A",
+          "value": 100,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder300A",
+          "value": 150,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitFeeder400A",
+          "value": 200,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitTransformer1000kVA",
+          "value": 800,
+          "unit": "kW"
+        },
+        {
+          "key": "mdLimitTransformer1500kVA",
+          "value": 1200,
+          "unit": "kW"
+        },
+        {
+          "key": "tclLimitMotorTransformer1500kVA",
+          "value": 950,
+          "unit": "kW"
+        },
+        {
+          "key": "tclLimitMotorTransformer1000kVA",
+          "value": 650,
+          "unit": "kW"
+        },
+        {
+          "key": "singleMotorApprovalAbove",
+          "value": 100,
+          "unit": "kW"
+        }
       ],
-      "tags": ["maximum demand", "transformer", "feeder"]
+      "tags": [
+        "maximum demand",
+        "transformer",
+        "feeder"
+      ]
     },
     {
       "id": "dewa-rei-2017/5.4.4",
@@ -465,7 +1013,11 @@
       "title": "Earth-leakage alarms for fire and essential pumps",
       "summary": "Fire pumps, jockey pumps, submersible pumps, sump pumps and other essential equipment need earth-leakage sensors or relays with alarm or indication, set to warn before a fault condition is reached.",
       "params": [],
-      "tags": ["earth leakage", "fire pump", "rcd"]
+      "tags": [
+        "earth leakage",
+        "fire pump",
+        "rcd"
+      ]
     },
     {
       "id": "dewa-rei-2017/8.1",
@@ -476,13 +1028,36 @@
       "title": "Power factor correction (see DBC G.4.20.1)",
       "summary": "Installation power factor between 0.9 lagging and unity, 0.95 recommended; AC units, motors and discharge lighting corrected to 0.95 lagging or better. Automatic stepped capacitor banks at main or sub-main level where individual correction is not achieved: commercial premises on feeders of 200 A and above, and residential premises at a 400 A feeder. Capacitors are dry sealed units to IEC 61921, temperature class D, with automatic discharge. Section 1.9 of the same document gives 0.9 as the minimum for AC equipment.",
       "params": [
-        { "key": "pfMin", "value": 0.9, "unit": "" },
-        { "key": "pfRecommended", "value": 0.95, "unit": "" },
-        { "key": "pfEquipmentMin", "value": 0.95, "unit": "" },
-        { "key": "capacitorBankFeederCommercial", "value": 200, "unit": "A" },
-        { "key": "capacitorBankFeederResidential", "value": 400, "unit": "A" }
+        {
+          "key": "pfMin",
+          "value": 0.9,
+          "unit": ""
+        },
+        {
+          "key": "pfRecommended",
+          "value": 0.95,
+          "unit": ""
+        },
+        {
+          "key": "pfEquipmentMin",
+          "value": 0.95,
+          "unit": ""
+        },
+        {
+          "key": "capacitorBankFeederCommercial",
+          "value": 200,
+          "unit": "A"
+        },
+        {
+          "key": "capacitorBankFeederResidential",
+          "value": 400,
+          "unit": "A"
+        }
       ],
-      "tags": ["power factor", "capacitor bank"]
+      "tags": [
+        "power factor",
+        "capacitor bank"
+      ]
     },
     {
       "id": "dewa-rei-2017/Appendix 10",
@@ -493,13 +1068,431 @@
       "title": "Recommended RCD operating currents (see DBC Table G.21)",
       "summary": "The same recommended ELCB/RCCB operating currents as Building Code Table G.21: 30 mA for 13 A sockets, water heaters, washing machines, domestic pumps and general 15 A sockets; 10 mA for Jacuzzi pumps and underwater lighting; 100 mA for window or split AC, FCU/AHU/VAV, irrigation pumps and cookers; 300 mA for neon signs; ranges for lighting, package AC, chillers, lifts and industrial machines. Grouping of circuits under one device is permitted.",
       "params": [
-        { "key": "rcdSocket13A", "value": 30, "unit": "mA" },
-        { "key": "rcdWaterHeater", "value": 30, "unit": "mA" },
-        { "key": "rcdJacuzziPump", "value": 10, "unit": "mA" },
-        { "key": "rcdWindowSplitAC", "value": 100, "unit": "mA" },
-        { "key": "rcdNeonSign", "value": 300, "unit": "mA" }
+        {
+          "key": "rcdSocket13A",
+          "value": 30,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdWaterHeater",
+          "value": 30,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdJacuzziPump",
+          "value": 10,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdWindowSplitAC",
+          "value": 100,
+          "unit": "mA"
+        },
+        {
+          "key": "rcdNeonSign",
+          "value": 300,
+          "unit": "mA"
+        }
       ],
-      "tags": ["rcd", "earth leakage"]
+      "tags": [
+        "rcd",
+        "earth leakage"
+      ]
+    },
+    {
+      "id": "dewa-transformer-md-note/diversity",
+      "sourceId": "dewa-transformer-md-note",
+      "ref": "Diversity factors a–d",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Transformer diversity factors by load type",
+      "summary": "For transformer demand, apply 0.8 to chillers; 0.6 to FAHUs and pumps (plumbing, chilled-water pump sets) and lifts; 0.4 to retail loads; and 0.3 to all other loads.",
+      "params": [
+        {
+          "key": "dfChiller",
+          "value": 0.8,
+          "unit": ""
+        },
+        {
+          "key": "dfFahuPumpsLifts",
+          "value": 0.6,
+          "unit": ""
+        },
+        {
+          "key": "dfRetail",
+          "value": 0.4,
+          "unit": ""
+        },
+        {
+          "key": "dfOther",
+          "value": 0.3,
+          "unit": ""
+        }
+      ],
+      "tags": [
+        "transformer",
+        "diversity",
+        "maximum demand",
+        "dewa submission"
+      ]
+    },
+    {
+      "id": "dewa-transformer-md-note/limits",
+      "sourceId": "dewa-transformer-md-note",
+      "ref": "Maximum demand limits",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Maximum demand allowed per transformer rating",
+      "summary": "Maximum demand is restricted to 1,147 kW on a 1,500 kVA transformer, 956 kW on 1,250 kVA, 765 kW on 1,000 kVA, 482 kW on 630 kVA and 382 kW on 500 kVA. The transformer size is decided from the load detail.",
+      "params": [
+        {
+          "key": "txMdLimit1500kVA",
+          "value": 1147,
+          "unit": "kW"
+        },
+        {
+          "key": "txMdLimit1250kVA",
+          "value": 956,
+          "unit": "kW"
+        },
+        {
+          "key": "txMdLimit1000kVA",
+          "value": 765,
+          "unit": "kW"
+        },
+        {
+          "key": "txMdLimit630kVA",
+          "value": 482,
+          "unit": "kW"
+        },
+        {
+          "key": "txMdLimit500kVA",
+          "value": 382,
+          "unit": "kW"
+        }
+      ],
+      "tags": [
+        "transformer",
+        "maximum demand",
+        "dewa submission"
+      ]
+    },
+    {
+      "id": "dewa-reference-chart-b/vd-pvc-sheathed",
+      "sourceId": "dewa-reference-chart-b",
+      "ref": "Armoured and unarmoured PVC sheathed cables",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Voltage drop per ampere per metre, PVC-sheathed cables",
+      "summary": "Voltage drop per ampere per metre for armoured and unarmoured PVC-sheathed cables: 10 mm² 4.8; 16 mm² 2.5; 25 mm² 1.65; 35 mm² 1.15; 50 mm² 0.87; 70 mm² 0.6; 95 mm² 0.45; 120 mm² 0.37; 150 mm² 0.3; 185 mm² 0.26; 240 mm² 0.21; 300 mm² 0.185 mV/A/m.",
+      "params": [
+        {
+          "key": "vdMvAm_10",
+          "value": 4.8,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_16",
+          "value": 2.5,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_25",
+          "value": 1.65,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_35",
+          "value": 1.15,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_50",
+          "value": 0.87,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_70",
+          "value": 0.6,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_95",
+          "value": 0.45,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_120",
+          "value": 0.37,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_150",
+          "value": 0.3,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_185",
+          "value": 0.26,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_240",
+          "value": 0.21,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_300",
+          "value": 0.185,
+          "unit": "mV/A/m"
+        }
+      ],
+      "tags": [
+        "voltage drop",
+        "cables"
+      ]
+    },
+    {
+      "id": "dewa-reference-chart-a/vd-single-core-conduit",
+      "sourceId": "dewa-reference-chart-a",
+      "ref": "Extra voltage-drop row",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Voltage drop per ampere per metre, single-core wires in conduit",
+      "summary": "Voltage drop per ampere per metre for single-core wires in conduit (as identified by the user): 2.5 mm² 19; 4 mm² 12; 6 mm² 7.9; 10 mm² 4.7; 16 mm² 2.9 mV/A/m.",
+      "params": [
+        {
+          "key": "vdMvAm_2_5",
+          "value": 19,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_4",
+          "value": 12,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_6",
+          "value": 7.9,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_10",
+          "value": 4.7,
+          "unit": "mV/A/m"
+        },
+        {
+          "key": "vdMvAm_16",
+          "value": 2.9,
+          "unit": "mV/A/m"
+        }
+      ],
+      "tags": [
+        "voltage drop",
+        "wires",
+        "final circuits"
+      ]
+    },
+    {
+      "id": "dewa-reference-chart-b/earthing",
+      "sourceId": "dewa-reference-chart-b",
+      "ref": "Main CB rating vs earth electrodes",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Earth electrodes and earth conductor by main breaker rating",
+      "summary": "Minimum number of earth electrodes and earth conductor size by main breaker rating: 60–100 A one electrode, 16 mm²; 200–300 A one, 50 mm²; 400 A one, 70 mm²; 500–1,600 A two, 70 mm²; 2,000–2,500 A two, 150 mm².",
+      "params": [
+        {
+          "key": "earthElectrodesUpTo400A",
+          "value": 1,
+          "unit": ""
+        },
+        {
+          "key": "earthElectrodesFrom500A",
+          "value": 2,
+          "unit": ""
+        },
+        {
+          "key": "earthConductor60to100A",
+          "value": 16,
+          "unit": "mm²"
+        },
+        {
+          "key": "earthConductor200to300A",
+          "value": 50,
+          "unit": "mm²"
+        },
+        {
+          "key": "earthConductor400to1600A",
+          "value": 70,
+          "unit": "mm²"
+        },
+        {
+          "key": "earthConductor2000to2500A",
+          "value": 150,
+          "unit": "mm²"
+        }
+      ],
+      "tags": [
+        "earthing",
+        "dewa inspection"
+      ]
+    },
+    {
+      "id": "dewa-reference-chart-b/metering",
+      "sourceId": "dewa-reference-chart-b",
+      "ref": "Meter type and rating",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Meter type, CT ratio, cable length and load",
+      "summary": "CT meters: 100/5 A up to 55 kW with at most 12 m from meter to CT; 200/5 A up to 110 kW, 300/5 A up to 160 kW and 600/5 A up to 350 kW with 25 m; 1,000/5 A up to 550 kW and 1,600/5 A up to 800 kW with 40 m; 2,000/5 A above 800 kW (1,500 kVA transformer); 2,500/5 A and 3,000/5 A special cases referred to DEWA's metering section. Direct meters: single-phase up to 9 kW and three-phase up to 52 kW, cable at most 25 mm². A check meter is required above 900 kW (1 MVA transformer).",
+      "params": [
+        {
+          "key": "meterDirect1PhMaxKW",
+          "value": 9,
+          "unit": "kW"
+        },
+        {
+          "key": "meterDirect3PhMaxKW",
+          "value": 52,
+          "unit": "kW"
+        },
+        {
+          "key": "meterDirectMaxCable",
+          "value": 25,
+          "unit": "mm²"
+        },
+        {
+          "key": "checkMeterAboveKW",
+          "value": 900,
+          "unit": "kW"
+        }
+      ],
+      "tags": [
+        "metering",
+        "dewa submission"
+      ]
+    },
+    {
+      "id": "dewa-reference-chart-b/room-size",
+      "sourceId": "dewa-reference-chart-b",
+      "ref": "Main CB rating vs room dimensions",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Electrical room size by main breaker rating",
+      "summary": "Room dimensions by main breaker rating: 1,600–2,500 A 3.5 × 3.5 m; 1,000–1,200 A 3 × 3 m; 600–800 A 2.5 × 2.5 m; 400–500 A 2.5 × 2 m; 200–300 A 2 × 2 m.",
+      "params": [],
+      "tags": [
+        "electrical room",
+        "dewa submission"
+      ]
+    },
+    {
+      "id": "doe-ewr-2020/G2-landlord",
+      "sourceId": "doe-ewr-2020",
+      "ref": "Appendix G2, example MDB schedule",
+      "page": 195,
+      "pageLabel": "",
+      "title": "Demand factors in the worked example of a main distribution board",
+      "summary": "The worked example applies 0.90 to the landlord-services and external-lighting final distribution boards (type SM), 0.85 to floor sub-main boards, 0.66 to the MCC, 0.90 to running chillers, 0.50 to lifts and the jockey pump, and 0 to standby or emergency equipment such as the standby chiller and sprinkler pump.",
+      "params": [
+        {
+          "key": "dfLandlordServices",
+          "value": 0.9,
+          "unit": ""
+        },
+        {
+          "key": "dfExternalLighting",
+          "value": 0.9,
+          "unit": ""
+        }
+      ],
+      "tags": [
+        "diversity",
+        "common areas",
+        "load schedule"
+      ]
+    },
+    {
+      "id": "designer-demand-factors/by-load-type",
+      "sourceId": "designer-demand-factors",
+      "ref": "Stated by the user",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Demand factors by load type for the load schedule",
+      "summary": "Residential SMDBs 0.70; pumps including chilled-water pumps 0.80 (standby pumps are left out of diversity); AHUs and OAHUs 0.90; passenger lifts 0.80; service and fireman lifts 0.90; substation DB 1.0; EV charger SMDBs 0.90; EMDBs 0.90; extract and make-up fans 0.90; irrigation pumps 0.50; swimming pool 0.80. Spare ways count in full at their own panel and at 0.8 when aggregated at the main distribution board.",
+      "params": [
+        {
+          "key": "dfResidentialSmdb",
+          "value": 0.7,
+          "unit": ""
+        },
+        {
+          "key": "dfPumps",
+          "value": 0.8,
+          "unit": ""
+        },
+        {
+          "key": "dfAhuOahu",
+          "value": 0.9,
+          "unit": ""
+        },
+        {
+          "key": "dfPassengerLift",
+          "value": 0.8,
+          "unit": ""
+        },
+        {
+          "key": "dfServiceFiremanLift",
+          "value": 0.9,
+          "unit": ""
+        },
+        {
+          "key": "dfDbSubstation",
+          "value": 1.0,
+          "unit": ""
+        },
+        {
+          "key": "dfEvCharger",
+          "value": 0.9,
+          "unit": ""
+        },
+        {
+          "key": "dfEmdb",
+          "value": 0.9,
+          "unit": ""
+        },
+        {
+          "key": "dfExtractMakeupFans",
+          "value": 0.9,
+          "unit": ""
+        },
+        {
+          "key": "dfIrrigationPumps",
+          "value": 0.5,
+          "unit": ""
+        },
+        {
+          "key": "dfSwimmingPool",
+          "value": 0.8,
+          "unit": ""
+        },
+        {
+          "key": "spareAtPanel",
+          "value": 1.0,
+          "unit": ""
+        },
+        {
+          "key": "spareAtMainBoard",
+          "value": 0.8,
+          "unit": ""
+        }
+      ],
+      "tags": [
+        "diversity",
+        "load schedule",
+        "maximum demand"
+      ]
     }
   ]
 }

@@ -34,6 +34,8 @@ const circuit = (patch: Partial<Circuit>): Circuit => ({
   rcdMA: 30,
   wireMm2: 2.5,
   eccMm2: 2.5,
+  lengthM: null,
+  cableKind: null,
   area: 'Bedroom',
   points: {},
   equipmentW: 0,
@@ -57,8 +59,11 @@ const board = (patch: Partial<Board>): Board => ({
   cable: '',
   eccMm2: null,
   lengthM: null,
+  feeder: null,
+  loadCategory: null,
   circuitDemandFactor: null,
   childFactor: null,
+  spareFactor: null,
   circuits: [],
   loads: [],
   meters: { singlePhase: 0, threePhase: 0, ct: 0 },
@@ -71,6 +76,7 @@ const load = (patch: Partial<DirectLoad>): DirectLoad => ({
   id: 'l',
   label: 'Load',
   kind: 'equipment',
+  category: null,
   phaseKW: { R: 0, Y: 0, B: 0 },
   demandFactor: declared(1),
   standbyKW: 0,
@@ -170,6 +176,7 @@ describe('runChecks', () => {
     pointTypes: types,
     designPowerFactor: declared(0.8),
     nocKWByBuilding: { A: 5 },
+    vdCurrentBasis: null,
   });
 
   it('refuses to judge anything against clauses that are not verified', () => {

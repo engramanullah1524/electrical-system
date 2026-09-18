@@ -15,6 +15,28 @@ export interface Factor {
   basis: Basis;
 }
 
+/** Load groups for DEWA transformer demand, each with its own diversity factor in the library. */
+export type LoadCategory = 'chiller' | 'fahuPumpsLifts' | 'retail' | 'other';
+export const LOAD_CATEGORIES: LoadCategory[] = ['chiller', 'fahuPumpsLifts', 'retail', 'other'];
+export const LOAD_CATEGORY_LABEL: Record<LoadCategory, string> = {
+  chiller: 'Chillers',
+  fahuPumpsLifts: 'FAHUs, pumps and lifts',
+  retail: 'Retail',
+  other: 'Other loads',
+};
+
+/** Cable families with their own voltage-drop table in the library. */
+export type CableKind = 'pvcSheathed' | 'singleCoreConduit';
+
+/** The cable that feeds a board from the board above it. */
+export interface CableRun {
+  kind: CableKind;
+  sizeMm2: number;
+  /** Parallel cables per phase. */
+  runs: number;
+  lengthM: number;
+}
+
 export type PointCategory =
   | 'lighting'
   | 'fan'
@@ -45,6 +67,9 @@ export interface Circuit {
   rcdMA: number | null;
   wireMm2: number | null;
   eccMm2: number | null;
+  /** Circuit length to its furthest point, for voltage drop. */
+  lengthM: number | null;
+  cableKind: CableKind | null;
   area: string;
   points: Record<string, number>;
   /** Stationary appliances counted at their actual load, in watts. */
@@ -58,6 +83,7 @@ export interface DirectLoad {
   id: string;
   label: string;
   kind: 'equipment' | 'spare' | 'future';
+  category: LoadCategory | null;
   phaseKW: PhaseKW;
   demandFactor: Factor;
   /** The part of this load that only runs on standby (e.g. a fire pump), left out of maximum demand. */
@@ -87,10 +113,19 @@ export interface Board {
   cable: string;
   eccMm2: number | null;
   lengthM: number | null;
+  /** Incoming cable from the board above, for voltage drop. Not used on boards fed directly by DEWA. */
+  feeder: CableRun | null;
+  /** Load group of this board's own final circuits, for transformer demand. */
+  loadCategory: LoadCategory | null;
   /** Diversity applied to this board's own final circuits. */
   circuitDemandFactor: Factor | null;
   /** Further diversity applied to the demand of boards fed from this one; empty means none. */
   childFactor: Factor | null;
+  /**
+   * Factor for all spare capacity aggregated at this board (e.g. 0.8 at the main distribution
+   * board), replacing the spare ways' own panel-level factor. Empty means spares keep their own.
+   */
+  spareFactor: Factor | null;
   circuits: Circuit[];
   loads: DirectLoad[];
   meters: { singlePhase: number; threePhase: number; ct: number };

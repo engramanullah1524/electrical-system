@@ -1,7 +1,8 @@
-import { resolveFromClause, type LibraryLookup } from '../library/provenance';
+import { resolveFromClause, usableClause, type LibraryLookup } from '../library/provenance';
 import type { BoardResult } from './engine';
 import { circuitWatts } from './engine';
-import type { Board, Circuit, Factor, PointType } from './types';
+import { LOAD_CATEGORIES, LOAD_CATEGORY_LABEL, type Board, type CableKind, type Circuit, type Factor, type LoadCategory, type PointType } from './types';
+import { designCurrentA, dropPercent, lookup, tableFromParams, type VdTable } from './voltageDrop';
 
 export type CheckStatus = 'pass' | 'fail' | 'warn' | 'info' | 'blocked';
 
@@ -27,12 +28,21 @@ export interface DesignContext {
   designPowerFactor: Factor | null;
   /** DEWA NOC connected-load approval per building, in kW. */
   nocKWByBuilding: Record<string, number>;
+  /** Current used for sub-main voltage drop: the board's maximum demand, or its full connected load. */
+  vdCurrentBasis: 'demand' | 'connected' | null;
 }
 
-/** The library clauses each rule is read from: Building Code first, DEWA 2017 as the fallback. */
+/**
+ * The library clauses each rule is read from. Building Code first, DEWA 2017 as the fallback — except
+ * where the user has designated a source: transformer diversity and limits come only from the DEWA
+ * note they supplied, and voltage drop per ampere per metre only from the chart they chose.
+ */
 const RULES = {
   demandFactorMax: ['dm-dbc-2021/G.4.16.2'],
-  mdLimits: ['dm-dbc-2021/Table G.15', 'dewa-rei-2017/4.7.2'],
+  mdLimitsFeeder: ['dm-dbc-2021/Table G.15', 'dewa-rei-2017/4.7.2'],
+  transformerDiversity: ['dewa-transformer-md-note/diversity'],
+  transformerLimits: ['dewa-transformer-md-note/limits'],
+  vdMax: ['dm-dbc-2021/G.4.7.3', 'dewa-rei-2017/4.2.3'],
   motorApproval: ['dm-dbc-2021/Table G.16', 'dewa-rei-2017/4.7.2'],
   substation: ['dm-dbc-2021/G.4.3', 'dewa-rei-2017/3.1.4'],
   lightingCircuits: ['dm-dbc-2021/G.4.16.1'],
@@ -41,6 +51,18 @@ const RULES = {
   waterHeater: ['dm-dbc-2021/G.4.13.7'],
   supply: ['dm-dbc-2021/G.4.2', 'dewa-rei-2017/1.2'],
 } as const;
+
+const VD_TABLES: Record<CableKind, string> = {
+  pvcSheathed: 'dewa-reference-chart-b/vd-pvc-sheathed',
+  singleCoreConduit: 'dewa-reference-chart-a/vd-single-core-conduit',
+};
+
+const FACTOR_KEY: Record<LoadCategory, string> = {
+  chiller: 'dfChiller',
+  fahuPumpsLifts: 'dfFahuPumpsLifts',
+  retail: 'dfRetail',
+  other: 'dfOther',
+};
 
 type Rule = { ok: true; value: number; clauseId: string } | { ok: false; reason: string };
 
@@ -82,13 +104,11 @@ export function runChecks(ctx: DesignContext): CheckResult[] {
     const result = ctx.results.get(board.id);
     if (!result) continue;
 
-    // Maximum demand against the DEWA limit for the supply feeding this board.
-    if (board.supply) {
-      const key =
-        board.supply.kind === 'transformer' ? `mdLimitTransformer${board.supply.kVA}kVA` : `mdLimitFeeder${board.supply.amps}A`;
-      const limit = readRule(ctx, RULES.mdLimits, key);
+    // Maximum demand against the DEWA limit for a feeder supply.
+    if (board.supply?.kind === 'feeder') {
+      const limit = readRule(ctx, RULES.mdLimitsFeeder, `mdLimitFeeder${board.supply.amps}A`);
       const id = `md-limit:${board.id}`;
-      const supplyText = board.supply.kind === 'transformer' ? `${board.supply.kVA} kVA transformer` : `${board.supply.amps} A feeder`;
+      const supplyText = `${board.supply.amps} A feeder`;
       if (!limit.ok) {
         blocked(id, board.id, `${board.ref} maximum demand on a ${supplyText}`, limit.reason);
       } else {
@@ -102,6 +122,9 @@ export function runChecks(ctx: DesignContext): CheckResult[] {
         });
       }
     }
+
+    // Transformer demand by load type, only from the designated DEWA note.
+    if (board.supply?.kind === 'transformer') out.push(transformerCheck(ctx, board, result, board.supply.kVA));
 
     // Single motors or compressors above the DEWA approval threshold.
     for (const load of board.loads) {
@@ -137,6 +160,155 @@ export function runChecks(ctx: DesignContext): CheckResult[] {
   }
 
   out.push(...buildingChecks(ctx));
+  out.push(...voltageDropChecks(ctx));
+  return out;
+}
+
+function transformerCheck(ctx: DesignContext, board: Board, result: BoardResult, kVA: number): CheckResult {
+  const id = `transformer:${board.id}`;
+  const blockedResult = (reason: string): CheckResult => ({
+    id,
+    boardId: board.id,
+    status: 'blocked',
+    message: `${board.ref} transformer demand cannot be checked yet: ${reason}`,
+    clauseIds: [],
+  });
+
+  if (result.byCategory.uncategorised > 0.0005) {
+    return blockedResult(`${fmt(result.byCategory.uncategorised)} kW has no load type (chillers, FAHUs/pumps/lifts, retail or other loads).`);
+  }
+  const factors = new Map<LoadCategory, number>();
+  let diversityClause = '';
+  for (const category of LOAD_CATEGORIES) {
+    const factor = readRule(ctx, RULES.transformerDiversity, FACTOR_KEY[category]);
+    if (!factor.ok) return blockedResult(factor.reason);
+    factors.set(category, factor.value);
+    diversityClause = factor.clauseId;
+  }
+  const limit = readRule(ctx, RULES.transformerLimits, `txMdLimit${kVA}kVA`);
+  if (!limit.ok) return blockedResult(limit.reason);
+
+  const parts: string[] = [];
+  let demand = 0;
+  for (const category of LOAD_CATEGORIES) {
+    const kw = result.byCategory[category];
+    if (kw <= 0) continue;
+    demand += kw * factors.get(category)!;
+    parts.push(`${LOAD_CATEGORY_LABEL[category]} ${fmt(kw)} kW × ${factors.get(category)}`);
+  }
+  return {
+    id,
+    boardId: board.id,
+    status: demand <= limit.value ? 'pass' : 'fail',
+    message: `${board.ref}: transformer demand ${fmt(demand)} kW (${parts.join(' + ') || 'no load'}; standby excluded) against ${fmt(limit.value)} kW allowed on ${kVA} kVA.`,
+    clauseIds: [diversityClause, limit.clauseId],
+  };
+}
+
+/** Cumulative voltage drop from the point of supply (boards fed directly by DEWA) to each circuit's end. */
+function voltageDropChecks(ctx: DesignContext): CheckResult[] {
+  const anyLengths = ctx.boards.some((b) => b.feeder || b.circuits.some((c) => c.lengthM));
+  if (!anyLengths) return [];
+  const project = (reason: string): CheckResult[] => [
+    { id: 'vd:project', boardId: ctx.boards[0].id, status: 'blocked', message: `Voltage drop cannot be checked yet: ${reason}`, clauseIds: [] },
+  ];
+
+  const max = readRule(ctx, RULES.vdMax, 'vdMaxPercent');
+  const vLL = readRule(ctx, RULES.supply, 'nominalVoltageLL');
+  const vLN = readRule(ctx, RULES.supply, 'nominalVoltageLN');
+  if (!max.ok) return project(max.reason);
+  if (!vLL.ok) return project(vLL.reason);
+  if (!vLN.ok) return project(vLN.reason);
+  if (!ctx.designPowerFactor) return project('set the design power factor for the project.');
+  if (!ctx.vdCurrentBasis) return project('choose whether sub-main currents use maximum demand or connected load.');
+  const pf = ctx.designPowerFactor.value;
+
+  const tables: Partial<Record<CableKind, VdTable>> = {};
+  const tableClauses: string[] = [];
+  const tableReasons: string[] = [];
+  for (const [kind, clauseId] of Object.entries(VD_TABLES) as [CableKind, string][]) {
+    const checked = usableClause(ctx.library, clauseId);
+    if (checked.usable) {
+      tables[kind] = tableFromParams(checked.clause.params);
+      tableClauses.push(clauseId);
+    } else tableReasons.push(checked.reason);
+  }
+
+  const byId = new Map(ctx.boards.map((b) => [b.id, b]));
+  const memo = new Map<string, { percent: number } | { reason: string }>();
+  const cumulative = (board: Board): { percent: number } | { reason: string } => {
+    const known = memo.get(board.id);
+    if (known) return known;
+    let value: { percent: number } | { reason: string };
+    const parent = board.parentId ? byId.get(board.parentId) : undefined;
+    if (!parent) value = { percent: 0 }; // point of supply
+    else {
+      const upstream = cumulative(parent);
+      const result = ctx.results.get(board.id);
+      if ('reason' in upstream) value = upstream;
+      else if (!board.feeder) value = { reason: `no incoming cable is entered for ${board.ref}` };
+      else if (!result) value = { reason: `${board.ref} has no load result` };
+      else {
+        const found = lookup(tables, board.feeder.kind, board.feeder.sizeMm2);
+        if (!found.ok) value = { reason: `${board.ref} incoming cable: ${found.reason}${tableReasons.length ? ` (${tableReasons.join(' ')})` : ''}` };
+        else {
+          const kw = ctx.vdCurrentBasis === 'demand' ? result.demandKW : result.connectedKW;
+          const threePhase = board.phases === 3;
+          const amps = designCurrentA(kw, threePhase, pf, vLL.value, vLN.value);
+          value = {
+            percent: upstream.percent + dropPercent(found.mvPerAm, amps, board.feeder.lengthM, board.feeder.runs, threePhase ? vLL.value : vLN.value),
+          };
+        }
+      }
+    }
+    memo.set(board.id, value);
+    return value;
+  };
+
+  const out: CheckResult[] = [];
+  const watts = new Map(ctx.pointTypes.map((t) => [t.id, t.watts]));
+  for (const board of ctx.boards) {
+    const upstream = cumulative(board);
+    if (board.feeder) {
+      out.push(
+        'reason' in upstream
+          ? { id: `vd-board:${board.id}`, boardId: board.id, status: 'blocked', message: `${board.ref} voltage drop cannot be checked yet: ${upstream.reason}.`, clauseIds: [] }
+          : {
+              id: `vd-board:${board.id}`,
+              boardId: board.id,
+              status: upstream.percent <= max.value ? 'pass' : 'fail',
+              message: `${board.ref}: ${fmt(upstream.percent)}% voltage drop from the point of supply to this board (limit ${max.value}%).`,
+              clauseIds: [max.clauseId, ...tableClauses],
+            },
+      );
+    }
+    for (const circuit of board.circuits) {
+      if (!circuit.lengthM) continue;
+      const id = `vd:${board.id}:${circuit.id}`;
+      const name = `${board.ref} circuit ${circuit.no}`;
+      if ('reason' in upstream) {
+        out.push({ id, boardId: board.id, circuitId: circuit.id, status: 'blocked', message: `${name} voltage drop cannot be checked yet: ${upstream.reason}.`, clauseIds: [] });
+        continue;
+      }
+      const found = lookup(tables, circuit.cableKind, circuit.wireMm2);
+      if (!found.ok) {
+        out.push({ id, boardId: board.id, circuitId: circuit.id, status: 'blocked', message: `${name} voltage drop cannot be checked yet: ${found.reason}.`, clauseIds: [] });
+        continue;
+      }
+      const threePhase = circuit.phase === 'RYB';
+      const amps = designCurrentA(circuitWatts(circuit, watts) / 1000, threePhase, pf, vLL.value, vLN.value);
+      const own = dropPercent(found.mvPerAm, amps, circuit.lengthM, 1, threePhase ? vLL.value : vLN.value);
+      const total = upstream.percent + own;
+      out.push({
+        id,
+        boardId: board.id,
+        circuitId: circuit.id,
+        status: total <= max.value ? 'pass' : 'fail',
+        message: `${name}: ${fmt(total)}% voltage drop at the circuit end (${fmt(upstream.percent)}% to the board + ${fmt(own)}% in the circuit; limit ${max.value}%).`,
+        clauseIds: [max.clauseId, ...tableClauses],
+      });
+    }
+  }
   return out;
 }
 

@@ -1,0 +1,173 @@
+import { describe, expect, it } from 'vitest';
+import core from '../library/packs/core.json';
+import { runChecks, type DesignContext } from '../src/design/checks';
+import { computeBoards } from '../src/design/engine';
+import type { Board, Circuit, DirectLoad } from '../src/design/types';
+import { dropPercent, tableFromParams } from '../src/design/voltageDrop';
+import type { LibraryPack } from '../src/library/pack';
+import { lookupFrom } from '../src/library/provenance';
+import type { Clause } from '../src/library/types';
+
+// Fictional boards; rule values come from the bundled pack, treated here as verified by the user.
+const pack = core as LibraryPack;
+const allVerified: Clause[] = pack.clauses.map((c) => ({ ...c, status: 'verified', reviewedOn: '2026-09-18', reviewNote: '', reviewedHash: '' }));
+const declared = (value: number) => ({ value, basis: { kind: 'declared' as const, reason: 'test' } });
+
+const board = (patch: Partial<Board>): Board => ({
+  id: 'b', projectId: 'p', building: 'A', ref: 'B', kind: 'DB', parentId: null, supply: null, phases: 3,
+  incomerDevice: '', incomerA: null, faultKA: null, cable: '', eccMm2: null, lengthM: null, feeder: null,
+  loadCategory: null, circuitDemandFactor: null, childFactor: null, spareFactor: null, circuits: [], loads: [],
+  meters: { singlePhase: 0, threePhase: 0, ct: 0 }, location: '', remarks: '', ...patch,
+});
+const load = (patch: Partial<DirectLoad>): DirectLoad => ({
+  id: 'l', label: 'Load', kind: 'equipment', category: null, phaseKW: { R: 0, Y: 0, B: 0 },
+  demandFactor: declared(1), standbyKW: 0, largestMotorKW: null, remarks: '', ...patch,
+});
+const circuit = (patch: Partial<Circuit>): Circuit => ({
+  id: 'c', no: '1', phase: 'R', breakerA: 20, rcdMA: 30, wireMm2: 2.5, eccMm2: 2.5, lengthM: null, cableKind: null,
+  area: 'Room', points: {}, equipmentW: 0, standby: false, remarks: '', ...patch,
+});
+
+function checks(boards: Board[], clauses: Clause[] = allVerified, extra: Partial<DesignContext> = {}) {
+  return runChecks({
+    library: lookupFrom(clauses, pack.sources),
+    boards,
+    results: computeBoards(boards, []),
+    pointTypes: [],
+    designPowerFactor: declared(0.8),
+    nocKWByBuilding: {},
+    vdCurrentBasis: 'demand',
+    ...extra,
+  });
+}
+
+describe('transformer demand (designated DEWA note)', () => {
+  const lvp = (loads: DirectLoad[], kVA = 1000) => board({ id: 'lvp', ref: 'LVP-1', kind: 'LVP', supply: { kind: 'transformer', kVA }, loads });
+
+  it('applies the factor of each load type and leaves standby out', () => {
+    const result = checks([
+      lvp([
+        load({ id: 'flats', category: 'other', phaseKW: { R: 400, Y: 400, B: 400 } }),
+        load({ id: 'pumps', category: 'fahuPumpsLifts', phaseKW: { R: 50, Y: 50, B: 50 } }),
+        load({ id: 'fire', category: 'fahuPumpsLifts', phaseKW: { R: 40, Y: 40, B: 40 }, standbyKW: 120 }),
+      ]),
+    ]).find((c) => c.id === 'transformer:lvp')!;
+    // 1,200 × 0.3 + 150 × 0.6 = 450 kW against 765 kW on 1,000 kVA; the 120 kW fire pump is standby.
+    expect(result.status).toBe('pass');
+    expect(result.message).toMatch(/450 kW/);
+    expect(result.message).toMatch(/765 kW allowed on 1000 kVA/);
+    expect(result.clauseIds).toEqual(['dewa-transformer-md-note/diversity', 'dewa-transformer-md-note/limits']);
+  });
+
+  it('fails when the demand exceeds the limit for the rating', () => {
+    const result = checks([lvp([load({ category: 'chiller', phaseKW: { R: 400, Y: 400, B: 400 } })])]).find((c) => c.id === 'transformer:lvp')!;
+    // 1,200 × 0.8 = 960 kW against 765 kW.
+    expect(result.status).toBe('fail');
+  });
+
+  it('will not guess a load type', () => {
+    const result = checks([lvp([load({ phaseKW: { R: 10, Y: 10, B: 10 } })])]).find((c) => c.id === 'transformer:lvp')!;
+    expect(result).toMatchObject({ status: 'blocked', message: expect.stringContaining('has no load type') });
+  });
+
+  it('is blocked for a rating the note does not list, and never falls back to other sources', () => {
+    const result = checks([lvp([load({ category: 'other', phaseKW: { R: 1, Y: 1, B: 1 } })], 800)]).find((c) => c.id === 'transformer:lvp')!;
+    expect(result.status).toBe('blocked');
+    const withoutNote = allVerified.filter((c) => !c.id.startsWith('dewa-transformer-md-note'));
+    const noNote = checks([lvp([load({ category: 'other', phaseKW: { R: 1, Y: 1, B: 1 } })])], withoutNote).find((c) => c.id === 'transformer:lvp')!;
+    expect(noNote.status).toBe('blocked');
+  });
+});
+
+describe('voltage drop', () => {
+  it('reads chart parameters into a size table', () => {
+    const table = tableFromParams([{ key: 'vdMvAm_2_5', value: 19 }, { key: 'vdMvAm_240', value: 0.21 }, { key: 'other', value: 1 }]);
+    expect([...table.entries()]).toEqual([[2.5, 19], [240, 0.21]]);
+  });
+
+  it('computes drop as mV/A/m × A × m ÷ 1000 ÷ runs, as % of nominal voltage', () => {
+    // 0.21 mV/A/m × 300 A × 100 m = 6.3 V → 1.575% of 400 V.
+    expect(dropPercent(0.21, 300, 100, 1, 400)).toBeCloseTo(1.575, 10);
+    expect(dropPercent(0.21, 300, 100, 2, 400)).toBeCloseTo(0.7875, 10);
+  });
+
+  it('adds sub-main and circuit drops from the point of supply', () => {
+    const boards = [
+      board({ id: 'lvp', ref: 'LVP', kind: 'LVP', supply: { kind: 'transformer', kVA: 1000 } }),
+      board({
+        id: 'smdb',
+        ref: 'SMDB',
+        kind: 'SMDB',
+        parentId: 'lvp',
+        feeder: { kind: 'pvcSheathed', sizeMm2: 240, runs: 1, lengthM: 100 },
+        loads: [load({ category: 'other', phaseKW: { R: 50, Y: 50, B: 50 } })],
+      }),
+      board({
+        id: 'db',
+        ref: 'DB',
+        parentId: 'smdb',
+        feeder: { kind: 'pvcSheathed', sizeMm2: 16, runs: 1, lengthM: 30 },
+        loadCategory: 'other',
+        circuitDemandFactor: declared(1),
+        circuits: [circuit({ id: 'c1', equipmentW: 2000, lengthM: 20, wireMm2: 2.5, cableKind: 'singleCoreConduit' })],
+      }),
+    ];
+    const results = checks(boards);
+    const vd = results.find((c) => c.id === 'vd:db:c1')!;
+    const pf = 0.8;
+    const smdbAmps = (152 * 1000) / (Math.sqrt(3) * 400 * pf); // demand: 150 kW + 2 kW
+    const dbAmps = (2 * 1000) / (Math.sqrt(3) * 400 * pf);
+    const circuitAmps = 2000 / (230 * pf);
+    const expected =
+      ((0.21 * smdbAmps * 100) / 1000 / 400) * 100 + ((2.5 * dbAmps * 30) / 1000 / 400) * 100 + ((19 * circuitAmps * 20) / 1000 / 230) * 100;
+    expect(vd.status).toBe('pass');
+    expect(vd.message).toContain(`${expected.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`);
+    expect(vd.clauseIds).toContain('dewa-reference-chart-b/vd-pvc-sheathed');
+  });
+
+  it('is blocked, not guessed, when a size is missing from the chart or a setting is unset', () => {
+    const boards = [
+      board({ id: 'lvp', ref: 'LVP', supply: { kind: 'transformer', kVA: 1000 } }),
+      board({
+        id: 'db',
+        ref: 'DB',
+        parentId: 'lvp',
+        feeder: { kind: 'pvcSheathed', sizeMm2: 6, runs: 1, lengthM: 30 },
+        loadCategory: 'other',
+        circuits: [circuit({ id: 'c1', equipmentW: 1000, lengthM: 10, cableKind: 'singleCoreConduit' })],
+      }),
+    ];
+    expect(checks(boards).find((c) => c.id === 'vd:db:c1')).toMatchObject({ status: 'blocked', message: expect.stringContaining('no 6 mm² entry') });
+    expect(checks(boards, allVerified, { vdCurrentBasis: null }).find((c) => c.id === 'vd:project')?.status).toBe('blocked');
+  });
+});
+
+describe('spare capacity', () => {
+  it('counts spares in full at their panel and at the main board factor when aggregated', () => {
+    const boards = [
+      board({
+        id: 'mdb',
+        ref: 'MDB',
+        kind: 'MDB',
+        spareFactor: declared(0.8),
+        loads: [load({ id: 'mdb-spare', kind: 'spare', phaseKW: { R: 5 / 3, Y: 5 / 3, B: 5 / 3 }, demandFactor: declared(1) })],
+      }),
+      board({
+        id: 'smdb',
+        ref: 'SMDB',
+        kind: 'SMDB',
+        parentId: 'mdb',
+        loads: [
+          load({ id: 'flats', phaseKW: { R: 20 / 3, Y: 20 / 3, B: 20 / 3 }, demandFactor: declared(0.7) }),
+          load({ id: 'spare', kind: 'spare', phaseKW: { R: 10 / 3, Y: 10 / 3, B: 10 / 3 }, demandFactor: declared(1) }),
+        ],
+      }),
+    ];
+    const results = computeBoards(boards, []);
+    // Panel: 20 × 0.7 + 10 × 1.0 = 24 kW.
+    expect(results.get('smdb')!.demandKW).toBeCloseTo(24, 10);
+    // Main board: 14 + (10 + 5) × 0.8 = 26 kW.
+    expect(results.get('mdb')!.demandKW).toBeCloseTo(26, 10);
+    expect(results.get('mdb')!.spareKW).toBeCloseTo(15, 10);
+  });
+});

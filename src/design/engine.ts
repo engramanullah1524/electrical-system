@@ -1,4 +1,7 @@
-import { PHASES, type Board, type Circuit, type PhaseKW, type PointType } from './types';
+import { PHASES, type Board, type Circuit, type LoadCategory, type PhaseKW, type PointType } from './types';
+
+export type CategoryKW = Record<LoadCategory | 'uncategorised', number>;
+const zeroCategories = (): CategoryKW => ({ chiller: 0, fahuPumpsLifts: 0, retail: 0, other: 0, uncategorised: 0 });
 
 export const zeroKW = (): PhaseKW => ({ R: 0, Y: 0, B: 0 });
 export const totalKW = (kw: PhaseKW) => kw.R + kw.Y + kw.B;
@@ -35,6 +38,11 @@ export interface BoardResult {
   overallFactor: number | null;
   /** Largest deviation of any phase from the three-phase average, in percent. */
   phaseDeviationPercent: number | null;
+  /** Connected load without standby, by load group, for the DEWA transformer demand. */
+  byCategory: CategoryKW;
+  /** Spare capacity in this board and below: its connected kW and the demand it contributes. */
+  spareKW: number;
+  spareDemandKW: number;
   issues: string[];
 }
 
@@ -68,6 +76,7 @@ export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<str
     let standbyKW = 0;
     let demandKW = 0;
 
+    const byCategory = zeroCategories();
     let circuitsKW = 0;
     for (const circuit of board.circuits) {
       const kw = circuitPhaseKW(circuit, watts, issues);
@@ -75,6 +84,7 @@ export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<str
       if (circuit.standby) standbyKW += totalKW(kw);
       else circuitsKW += totalKW(kw);
     }
+    byCategory[board.loadCategory ?? 'uncategorised'] += circuitsKW;
     if (board.circuits.length > 0) {
       if (!board.circuitDemandFactor) {
         issues.push(`${board.ref}: no demand factor is set for its circuits, so their maximum demand equals connected load.`);
@@ -82,19 +92,38 @@ export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<str
       demandKW += circuitsKW * (board.circuitDemandFactor?.value ?? 1);
     }
 
+    let spareKW = 0;
+    let spareDemandKW = 0;
     for (const load of board.loads) {
       connected = addKW(connected, load.phaseKW);
       const loadKW = totalKW(load.phaseKW);
       const standby = Math.min(Math.max(load.standbyKW, 0), loadKW);
       standbyKW += standby;
-      demandKW += (loadKW - standby) * load.demandFactor.value;
+      const loadDemand = (loadKW - standby) * load.demandFactor.value;
+      demandKW += loadDemand;
+      byCategory[load.category ?? 'uncategorised'] += loadKW - standby;
+      if (load.kind === 'spare') {
+        spareKW += loadKW - standby;
+        spareDemandKW += loadDemand;
+      }
     }
 
     for (const child of children.get(board.id) ?? []) {
       const result = visit(child);
       connected = addKW(connected, result.connected);
       standbyKW += result.standbyKW;
-      demandKW += result.demandKW * (board.childFactor?.value ?? 1);
+      // Spare demand is carried separately so a main board can apply its own spare factor to it.
+      const childFactor = board.childFactor?.value ?? 1;
+      demandKW += (result.demandKW - result.spareDemandKW) * childFactor + result.spareDemandKW;
+      spareKW += result.spareKW;
+      spareDemandKW += result.spareDemandKW;
+      for (const key of Object.keys(byCategory) as (keyof CategoryKW)[]) byCategory[key] += result.byCategory[key];
+    }
+
+    if (board.spareFactor && spareKW > 0) {
+      // Replace the spares' panel-level demand with the main board's factor on their capacity.
+      demandKW += spareKW * board.spareFactor.value - spareDemandKW;
+      spareDemandKW = spareKW * board.spareFactor.value;
     }
 
     if (board.parentId && !byId.has(board.parentId)) issues.push(`${board.ref}: the board it is fed from no longer exists.`);
@@ -113,6 +142,9 @@ export function computeBoards(boards: Board[], pointTypes: PointType[]): Map<str
         board.phases === 3 && average > 0
           ? (Math.max(...PHASES.map((p) => Math.abs(connected[p] - average))) / average) * 100
           : null,
+      byCategory,
+      spareKW,
+      spareDemandKW,
       issues,
     };
     inProgress.delete(board.id);
