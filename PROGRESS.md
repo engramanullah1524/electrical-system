@@ -107,6 +107,17 @@ Later phases: 2 QA/QC, T&C, handover · 3 MTO and procurement · 4 site executio
     - in-ground ratings assume a different soil resistivity than DBC Table G.3, so a sourced
       correction is needed.
 
+## Rules the user designated (2026-09-18)
+
+- The transformer check uses only a DEWA note the user supplied: four load types with their own
+  factors, kW limits per transformer rating, standby excluded.
+- Voltage drop uses the mV/A/m values from a DEWA chart the user chose. It is cumulative from the
+  point of supply to each circuit end.
+- Load-schedule maximum demand uses the user's demand factors by load type. Spares count in full at
+  their panel and at a main-board factor when aggregated.
+- Common-area sub-main boards use the worked example in the Abu Dhabi EWR 2020, Appendix G2.
+- All of these are library clauses; the user still verifies each one in the Review queue.
+
 ## Next step (M3 screens)
 
 1. Add a Dexie `boards` table, plus project fields for point types, design power factor and NOC
