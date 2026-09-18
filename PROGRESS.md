@@ -9,7 +9,7 @@ details are kept outside this public file, in the gitignored `private/NOTES.md`.
 |---|---|---|
 | M1 | Foundation: PWA shell (phone + laptop), local database, library with review queue, sync client, public-repo guard, CI deploy | **Done 2026-09-17**, except the sync connection test on a real device |
 | M2 | Source registry: confirm current editions on official sites, extract PDF text locally, draft candidate clauses | **In progress**: first pack (7 sources, 26 clauses) done 2026-09-17 |
-| M3 | Load schedule engine (multi-building, standby, DF with source, headroom vs NOC) | **In progress**: engine, checks and audit done 2026-09-17; screens next |
+| M3 | Load schedule engine (multi-building, standby, DF with source, headroom vs NOC) | **Done 2026-09-18**: engine, checks, audit and screens (boards, editable factor table, settings, checks) |
 | M4 | Calculations: breakers, cables (private data pack), voltage drop, PF correction, fault level, generator check | Data pack started 2026-09-18 (see below) |
 | M5 | Pre-submission checks, approval pack exports, submission tracker | To do |
 | M6 | Item lookup slice and the pilot project | To do |
@@ -118,7 +118,26 @@ Later phases: 2 QA/QC, T&C, handover · 3 MTO and procurement · 4 site executio
 - Common-area sub-main boards use the worked example in the Abu Dhabi EWR 2020, Appendix G2.
 - All of these are library clauses; the user still verifies each one in the Review queue.
 
-## Next step (M3 screens)
+## M3 screens (done 2026-09-18)
+
+- Project page with four tabs: Boards (tree plus board editor), Demand factors, Settings (power
+  factor, voltage-drop current basis, NOC per building) and Checks.
+- The demand factor table is started from the library. Changing a value needs a reason and keeps
+  the old value, its basis and the date in a history.
+- Ways link to table entries, so a factor agreed later with the consultant updates every way that
+  uses it.
+- Checked in the browser: add a project, load the factors, change one with a reason (the history
+  is shown), add a board and a way, and see its maximum demand follow the changed factor. Checks
+  that wait on unverified clauses show as blocked.
+
+## Next step
+
+1. Importer for the pilot consultant's workbook template, covering SMDB and 3-phase DB sheets.
+   Imported ways get table-linked factors and unset transformer load types for the user to
+   confirm.
+2. Point-type grid for circuits, and exports (load schedule xlsx/PDF in the approved format).
+
+## Previously planned screens step (kept for reference)
 
 1. Add a Dexie `boards` table, plus project fields for point types, design power factor and NOC
    kW per building.
