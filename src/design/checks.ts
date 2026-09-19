@@ -1,7 +1,9 @@
 import { resolveFromClause, usableClause, type LibraryLookup } from '../library/provenance';
+import type { UnitType } from '../project/types';
 import type { BoardResult } from './engine';
 import { circuitWatts, factorValue } from './engine';
-import { LOAD_CATEGORIES, LOAD_CATEGORY_LABEL, type Board, type CableKind, type Circuit, type Factor, type LoadCategory, type PointType } from './types';
+import { loadSizingRules, sizeBoards, transformerFor, SIZING_CLAUSES } from './selection';
+import type { Board, CableKind, Circuit, Factor, PhaseKW, PointType } from './types';
 import { designCurrentA, dropPercent, lookup, tableFromParams, type VdTable } from './voltageDrop';
 
 export type CheckStatus = 'pass' | 'fail' | 'warn' | 'info' | 'blocked';
@@ -32,18 +34,23 @@ export interface DesignContext {
   vdCurrentBasis: 'demand' | 'connected' | null;
   /** The project's demand factor table (entry id → current value). */
   factors?: Map<string, number>;
+  /** Residential unit DB types, checked against the final-DB phase imbalance limit. */
+  unitTypes?: UnitType[];
+  /** The project uses the DEWA-approved 70 mm² ECC with 150 mm² cables. */
+  eccPrecedent150?: boolean;
 }
 
 /**
  * The library clauses each rule is read from. Building Code first, DEWA 2017 as the fallback — except
- * where the user has designated a source: transformer diversity and limits come only from the DEWA
- * note they supplied, and voltage drop per ampere per metre only from the chart they chose.
+ * where the user has designated a source: transformer limits come only from the DEWA note they
+ * supplied (checked against the schedule's maximum demand, their decision of 2026-09-19), voltage
+ * drop per ampere per metre only from the chart they chose, and phase imbalance from their limits.
  */
 const RULES = {
   demandFactorMax: ['dm-dbc-2021/G.4.16.2'],
   mdLimitsFeeder: ['dm-dbc-2021/Table G.15', 'dewa-rei-2017/4.7.2'],
-  transformerDiversity: ['dewa-transformer-md-note/diversity'],
   transformerLimits: ['dewa-transformer-md-note/limits'],
+  phaseImbalance: ['designer-sizing-rules/phase-imbalance'],
   vdMax: ['dm-dbc-2021/G.4.7.3', 'dewa-rei-2017/4.2.3'],
   motorApproval: ['dm-dbc-2021/Table G.16', 'dewa-rei-2017/4.7.2'],
   substation: ['dm-dbc-2021/G.4.3', 'dewa-rei-2017/3.1.4'],
@@ -57,13 +64,6 @@ const RULES = {
 const VD_TABLES: Record<CableKind, string> = {
   pvcSheathed: 'dewa-reference-chart-b/vd-pvc-sheathed',
   singleCoreConduit: 'dewa-reference-chart-a/vd-single-core-conduit',
-};
-
-const FACTOR_KEY: Record<LoadCategory, string> = {
-  chiller: 'dfChiller',
-  fahuPumpsLifts: 'dfFahuPumpsLifts',
-  retail: 'dfRetail',
-  other: 'dfOther',
 };
 
 type Rule = { ok: true; value: number; clauseId: string } | { ok: false; reason: string };
@@ -91,6 +91,7 @@ export function runChecks(ctx: DesignContext): CheckResult[] {
     const factors: [string, Factor | null][] = [
       ['circuit demand factor', board.circuitDemandFactor],
       ['factor on sub-boards', board.childFactor],
+      ['row factor at the board above', board.rowFactor ?? null],
       ['factor on spare capacity', board.spareFactor],
       ...board.loads.map((l): [string, Factor | null] => [`demand factor of ${l.label}`, l.demandFactor]),
     ];
@@ -129,8 +130,14 @@ export function runChecks(ctx: DesignContext): CheckResult[] {
       }
     }
 
-    // Transformer demand by load type, only from the designated DEWA note.
-    if (board.supply?.kind === 'transformer') out.push(transformerCheck(ctx, board, result, board.supply.kVA));
+    // Transformer size: the schedule's maximum demand against the DEWA note's limits.
+    const fedByDewa = !board.parentId || !ctx.boards.some((b) => b.id === board.parentId);
+    if (board.supply?.kind === 'transformer' || (fedByDewa && board.kind === 'LVP'))
+      out.push(transformerCheck(ctx, board, result, board.supply?.kind === 'transformer' ? board.supply.kVA : null));
+
+    // Phase imbalance: under 3% on final DBs, under 10% on SMDBs and MDBs (the user's limits).
+    if (board.phases === 3 && result.phaseDeviationPercent !== null)
+      out.push(imbalanceCheck(ctx, board.id, board.ref, board.kind === 'DB', result.phaseDeviationPercent));
 
     // Single motors or compressors above the DEWA approval threshold.
     for (const load of board.loads) {
@@ -165,49 +172,104 @@ export function runChecks(ctx: DesignContext): CheckResult[] {
     for (const circuit of board.circuits) out.push(...circuitChecks(ctx, board, circuit));
   }
 
+  for (const type of ctx.unitTypes ?? []) {
+    if (type.phases !== 3) continue;
+    const deviation = deviationPercent(type.phaseKW);
+    if (deviation !== null) out.push(imbalanceCheck(ctx, '', `Unit DB type ${type.name}`, true, deviation));
+  }
+
   out.push(...buildingChecks(ctx));
   out.push(...voltageDropChecks(ctx));
+  out.push(...sizingChecks(ctx));
   return out;
 }
 
-function transformerCheck(ctx: DesignContext, board: Board, result: BoardResult, kVA: number): CheckResult {
+export function deviationPercent(kw: PhaseKW): number | null {
+  const average = (kw.R + kw.Y + kw.B) / 3;
+  return average > 0 ? (Math.max(Math.abs(kw.R - average), Math.abs(kw.Y - average), Math.abs(kw.B - average)) / average) * 100 : null;
+}
+
+function imbalanceCheck(ctx: DesignContext, boardId: string, name: string, finalDb: boolean, deviation: number): CheckResult {
+  const id = `imbalance:${boardId || name}`;
+  const limit = readRule(ctx, RULES.phaseImbalance, finalDb ? 'imbalanceMaxPercentFinalDb' : 'imbalanceMaxPercentSmdbMdb');
+  if (!limit.ok) return { id, boardId, status: 'blocked', message: `${name} phase imbalance cannot be checked yet: ${limit.reason}`, clauseIds: [] };
+  return {
+    id,
+    boardId,
+    status: deviation < limit.value ? 'pass' : 'fail',
+    message: `${name}: phase imbalance ${fmt(deviation, 1)}% (largest deviation from the three-phase average), limit below ${limit.value}% for ${finalDb ? 'final DBs' : 'SMDBs and MDBs'}.`,
+    clauseIds: [limit.clauseId],
+  };
+}
+
+/** Problems the automatic breaker, cable, ECC, meter and transformer selection found. */
+function sizingChecks(ctx: DesignContext): CheckResult[] {
+  if (!ctx.boards.length) return [];
+  const out: CheckResult[] = [];
+  const rules = loadSizingRules(ctx.library);
+  if (rules.blocked.length) {
+    out.push({
+      id: 'sizing:rules',
+      boardId: ctx.boards[0].id,
+      status: 'blocked',
+      message: `Automatic sizing cannot run in full yet: ${[...new Set(rules.blocked)].join(' ')}`,
+      clauseIds: [],
+    });
+  }
+  const sizing = sizeBoards(ctx.boards, ctx.results, rules, { eccPrecedent: ctx.eccPrecedent150 ?? false });
+  const real = (notes: string[]) => notes.filter((n) => !/not verified yet/.test(n));
+  for (const board of ctx.boards) {
+    const s = sizing.get(board.id);
+    if (!s) continue;
+    const incomer = real(s.incomer?.notes ?? []);
+    if (incomer.length) out.push({ id: `sizing:${board.id}`, boardId: board.id, status: 'warn', message: `${board.ref} incomer: ${incomer.join('; ')}.`, clauseIds: rules.clauseIds });
+    const lv = real(s.lv?.notes ?? []);
+    if (lv.length) out.push({ id: `sizing-lv:${board.id}`, boardId: board.id, status: 'warn', message: `${board.ref}: ${lv.join('; ')}.`, clauseIds: rules.clauseIds });
+    for (const load of board.loads) {
+      const way = real(s.ways.get(load.id)?.notes ?? []);
+      if (way.length) out.push({ id: `sizing:${board.id}:${load.id}`, boardId: board.id, status: 'warn', message: `${board.ref} / ${load.label}: ${way.join('; ')}.`, clauseIds: rules.clauseIds });
+    }
+  }
+  return out;
+}
+
+function transformerCheck(ctx: DesignContext, board: Board, result: BoardResult, kVA: number | null): CheckResult {
   const id = `transformer:${board.id}`;
   const blockedResult = (reason: string): CheckResult => ({
     id,
     boardId: board.id,
     status: 'blocked',
-    message: `${board.ref} transformer demand cannot be checked yet: ${reason}`,
+    message: `${board.ref} transformer size cannot be checked yet: ${reason}`,
     clauseIds: [],
   });
-
-  if (result.byCategory.uncategorised > 0.0005) {
-    return blockedResult(`${fmt(result.byCategory.uncategorised)} kW has no load type (chillers, FAHUs/pumps/lifts, retail or other loads).`);
+  const basis = usableClause(ctx.library, SIZING_CLAUSES.lvPanel);
+  if (!basis.usable) return blockedResult(basis.reason);
+  const clause = usableClause(ctx.library, RULES.transformerLimits[0]);
+  if (!clause.usable) return blockedResult(clause.reason);
+  const limits: { kVA: number; maxKW: number }[] = [];
+  for (const p of clause.clause.params) {
+    const match = /^txMdLimit(\d+)kVA$/.exec(p.key);
+    if (match && typeof p.value === 'number') limits.push({ kVA: Number(match[1]), maxKW: p.value });
   }
-  const factors = new Map<LoadCategory, number>();
-  let diversityClause = '';
-  for (const category of LOAD_CATEGORIES) {
-    const factor = readRule(ctx, RULES.transformerDiversity, FACTOR_KEY[category]);
-    if (!factor.ok) return blockedResult(factor.reason);
-    factors.set(category, factor.value);
-    diversityClause = factor.clauseId;
+  limits.sort((a, b) => a.kVA - b.kVA);
+  const md = result.demandKW;
+  const needed = transformerFor(md, limits);
+  const clauseIds = [SIZING_CLAUSES.lvPanel, clause.clause.id];
+  const neededText = needed
+    ? `${needed.kVA} kVA (up to ${fmt(needed.maxKW)} kW)`
+    : `more than the largest transformer in the note allows (${fmt(limits[limits.length - 1]?.maxKW ?? 0)} kW), so split the load`;
+  if (kVA === null) {
+    return { id, boardId: board.id, status: needed ? 'info' : 'fail', message: `${board.ref}: maximum demand ${fmt(md)} kW needs ${neededText}.`, clauseIds };
   }
-  const limit = readRule(ctx, RULES.transformerLimits, `txMdLimit${kVA}kVA`);
-  if (!limit.ok) return blockedResult(limit.reason);
-
-  const parts: string[] = [];
-  let demand = 0;
-  for (const category of LOAD_CATEGORIES) {
-    const kw = result.byCategory[category];
-    if (kw <= 0) continue;
-    demand += kw * factors.get(category)!;
-    parts.push(`${LOAD_CATEGORY_LABEL[category]} ${fmt(kw)} kW × ${factors.get(category)}`);
-  }
+  const entered = limits.find((l) => l.kVA === kVA);
+  if (!entered) return blockedResult(`the DEWA note gives no limit for ${kVA} kVA.`);
+  const ok = md <= entered.maxKW;
   return {
     id,
     boardId: board.id,
-    status: demand <= limit.value ? 'pass' : 'fail',
-    message: `${board.ref}: transformer demand ${fmt(demand)} kW (${parts.join(' + ') || 'no load'}; standby excluded) against ${fmt(limit.value)} kW allowed on ${kVA} kVA.`,
-    clauseIds: [diversityClause, limit.clauseId],
+    status: ok ? 'pass' : 'fail',
+    message: `${board.ref}: maximum demand ${fmt(md)} kW against ${fmt(entered.maxKW)} kW allowed on ${kVA} kVA${ok ? '' : `; it needs ${neededText}`}.`,
+    clauseIds,
   };
 }
 

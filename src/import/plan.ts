@@ -115,13 +115,20 @@ export function planImport(
     });
   }
 
-  const toLoad = (panel: PanelSheet, way: WayRow): DirectLoad => {
+  /** A factor suggested from the way's name, linked to the project's factor table. */
+  const suggestFactor = (panel: PanelSheet, way: WayRow): Factor => {
     const name = way.label.toUpperCase();
     const rule = FACTOR_RULES.find(([re]) => re.test(name));
     const factorEntry = rule ? entry(rule[1]) : undefined;
     if (rule && factorEntry) suggestions.push(`${panel.name} / ${way.label}: factor "${factorEntry.label}" (${factorEntry.value}) suggested as ${rule[2]}.`);
     else if (rule) suggestions.push(`${panel.name} / ${way.label}: looks like ${rule[2]}, but the factor table has no "${rule[1]}" entry. Load the library factors first.`);
     else suggestions.push(`${panel.name} / ${way.label}: no factor suggested; choose one.`);
+    return factorEntry ? linkedFactor(factorEntry) : unsetFactor();
+  };
+
+  const toLoad = (panel: PanelSheet, way: WayRow): DirectLoad => {
+    const name = way.label.toUpperCase();
+    const demandFactor = suggestFactor(panel, way);
     const fire = /FIRE.*PUMP/.test(name);
     if (fire) suggestions.push(`${panel.name} / ${way.label}: marked standby (${fmt(way.total)} kW), so it stays out of maximum and transformer demand.`);
     const described = [way.device && way.ratingA ? `${way.device} ${way.ratingA} A` : '', way.cable, way.ecc && `ECC ${way.ecc}`].filter(Boolean).join(', ');
@@ -131,7 +138,7 @@ export function planImport(
       kind: /SPARE/.test(name) ? 'spare' : 'equipment',
       category: null,
       phaseKW: { R: way.R, Y: way.Y, B: way.B },
-      demandFactor: factorEntry ? linkedFactor(factorEntry) : unsetFactor(),
+      demandFactor,
       standbyKW: fire ? way.R + way.Y + way.B : 0,
       largestMotorKW: null,
       remarks: [described, `row ${way.row}`].filter(Boolean).join('; '),
@@ -144,8 +151,10 @@ export function planImport(
       const child = panels.find((p) => p !== panel && sameName(p.name, way.label));
       const childBoard = child && boards.get(child.name);
       if (childBoard && !childBoard.parentId) {
-        // The way is a board of its own: link it rather than count its load twice.
+        // The way is a board of its own: link it rather than count its load twice. Its row at this
+        // panel counts its connected load less standby × the row's factor.
         childBoard.parentId = board.id;
+        childBoard.rowFactor = suggestFactor(panel, way);
         if (Math.abs(child.totals.total - way.total) > 0.01) {
           findings.push(`${panel.name} / ${way.label}: the way states ${fmt(way.total)} kW but sheet ${child.name} totals ${fmt(child.totals.total)} kW.`);
         }

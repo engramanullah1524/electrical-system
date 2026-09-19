@@ -90,6 +90,7 @@ describe('computeBoards', () => {
     id: 'db1',
     ref: 'DB-101',
     parentId: 'smdb',
+    rowFactor: declared(0.7),
     circuitDemandFactor: declared(0.7),
     circuits: [
       circuit({ no: '1', phase: 'R', points: { dl: 11 } }),
@@ -102,6 +103,7 @@ describe('computeBoards', () => {
     ref: 'SMDB-1',
     kind: 'SMDB',
     parentId: 'lvp',
+    rowFactor: declared(0.7),
     loads: [load({ id: 'fp', label: 'Fire pump', phaseKW: { R: 10, Y: 10, B: 10 }, demandFactor: declared(0), standbyKW: 30 })],
   });
   const lvp = board({
@@ -127,10 +129,35 @@ describe('computeBoards', () => {
     expect(r.overallFactor).toBeCloseTo(0.7, 10);
   });
 
-  it('adds sub-board demand upward without applying diversity twice', () => {
+  it('counts a sub-board at the board above as its connected load less standby × its row factor', () => {
     const r = results.get('lvp')!;
     expect(r.connectedKW).toBeCloseTo(38.51, 10);
-    expect(r.demandKW).toBeCloseTo(2.51 * 0.7 + 6 * 0.5, 10);
+    expect(r.demandKW).toBeCloseTo((32.51 - 30) * 0.7 + 6 * 0.5, 10);
+  });
+
+  it('uses the row factor on connected load, not the sub-board own maximum demand (as on DEWA schedules)', () => {
+    const smdb2 = board({
+      id: 's2',
+      ref: 'SMDB-2',
+      kind: 'SMDB',
+      parentId: 'p2',
+      rowFactor: declared(0.7),
+      loads: [
+        load({ id: 'u', phaseKW: { R: 30, Y: 30, B: 30 }, demandFactor: declared(0.7) }),
+        load({ id: 'sauna', phaseKW: { R: 3, Y: 3, B: 3 }, demandFactor: declared(0.8) }),
+      ],
+    });
+    const panel = board({ id: 'p2', ref: 'LVP-2', kind: 'LVP' });
+    const r = computeBoards([smdb2, panel], types);
+    expect(r.get('s2')!.demandKW).toBeCloseTo(90 * 0.7 + 9 * 0.8, 10); // its own schedule
+    expect(r.get('p2')!.demandKW).toBeCloseTo(99 * 0.7, 10); // its row at the panel
+  });
+
+  it('flags a sub-board with no row factor and counts it in full', () => {
+    const child = board({ id: 'c', ref: 'SMDB-X', parentId: 'top', loads: [load({ phaseKW: { R: 1, Y: 1, B: 1 }, demandFactor: declared(0.5) })] });
+    const r = computeBoards([child, board({ id: 'top', ref: 'LVP-X' })], types).get('top')!;
+    expect(r.demandKW).toBeCloseTo(3, 10);
+    expect(r.issues.join(' ')).toMatch(/SMDB-X: no row factor/);
   });
 
   it('reports the largest phase deviation from the average', () => {

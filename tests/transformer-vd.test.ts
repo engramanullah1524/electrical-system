@@ -41,41 +41,52 @@ function checks(boards: Board[], clauses: Clause[] = allVerified, extra: Partial
   });
 }
 
-describe('transformer demand (designated DEWA note)', () => {
-  const lvp = (loads: DirectLoad[], kVA = 1000) => board({ id: 'lvp', ref: 'LVP-1', kind: 'LVP', supply: { kind: 'transformer', kVA }, loads });
+describe('transformer size (schedule maximum demand against the DEWA note limits)', () => {
+  const lvp = (loads: DirectLoad[], kVA: number | null = 1000) =>
+    board({ id: 'lvp', ref: 'LVP-1', kind: 'LVP', supply: kVA === null ? null : { kind: 'transformer', kVA }, loads });
+  const flats = (kw: number, standbyKW = 0) => load({ id: `l${kw}`, phaseKW: { R: kw / 3, Y: kw / 3, B: kw / 3 }, demandFactor: declared(0.7), standbyKW });
 
-  it('applies the factor of each load type and leaves standby out', () => {
-    const result = checks([
-      lvp([
-        load({ id: 'flats', category: 'other', phaseKW: { R: 400, Y: 400, B: 400 } }),
-        load({ id: 'pumps', category: 'fahuPumpsLifts', phaseKW: { R: 50, Y: 50, B: 50 } }),
-        load({ id: 'fire', category: 'fahuPumpsLifts', phaseKW: { R: 40, Y: 40, B: 40 }, standbyKW: 120 }),
-      ]),
-    ]).find((c) => c.id === 'transformer:lvp')!;
-    // 1,200 × 0.3 + 150 × 0.6 = 450 kW against 765 kW on 1,000 kVA; the 120 kW fire pump is standby.
+  it('passes when the maximum demand is within the limit, standby left out', () => {
+    // 1,000 kW × 0.7 = 700 kW against 765 kW on 1,000 kVA; the 120 kW standby load is not counted.
+    const result = checks([lvp([flats(1000), load({ id: 'fire', phaseKW: { R: 40, Y: 40, B: 40 }, standbyKW: 120 })])]).find((c) => c.id === 'transformer:lvp')!;
     expect(result.status).toBe('pass');
-    expect(result.message).toMatch(/450 kW/);
-    expect(result.message).toMatch(/765 kW allowed on 1000 kVA/);
-    expect(result.clauseIds).toEqual(['dewa-transformer-md-note/diversity', 'dewa-transformer-md-note/limits']);
+    expect(result.message).toMatch(/700 kW against 765 kW allowed on 1000 kVA/);
+    expect(result.clauseIds).toEqual(['designer-sizing-rules/lv-panel-transformer', 'dewa-transformer-md-note/limits']);
   });
 
-  it('fails when the demand exceeds the limit for the rating', () => {
-    const result = checks([lvp([load({ category: 'chiller', phaseKW: { R: 400, Y: 400, B: 400 } })])]).find((c) => c.id === 'transformer:lvp')!;
-    // 1,200 × 0.8 = 960 kW against 765 kW.
+  it('fails and names the size needed when the demand exceeds the limit', () => {
+    const result = checks([lvp([flats(1200)])]).find((c) => c.id === 'transformer:lvp')!;
+    // 840 kW needs 1,250 kVA (956 kW).
     expect(result.status).toBe('fail');
+    expect(result.message).toMatch(/needs 1250 kVA/);
   });
 
-  it('will not guess a load type', () => {
-    const result = checks([lvp([load({ phaseKW: { R: 10, Y: 10, B: 10 } })])]).find((c) => c.id === 'transformer:lvp')!;
-    expect(result).toMatchObject({ status: 'blocked', message: expect.stringContaining('has no load type') });
+  it('proposes a size when none is entered on an LV panel', () => {
+    const result = checks([lvp([flats(600)], null)]).find((c) => c.id === 'transformer:lvp')!; // 420 kW
+    expect(result).toMatchObject({ status: 'info', message: expect.stringContaining('needs 630 kVA') });
   });
 
   it('is blocked for a rating the note does not list, and never falls back to other sources', () => {
-    const result = checks([lvp([load({ category: 'other', phaseKW: { R: 1, Y: 1, B: 1 } })], 800)]).find((c) => c.id === 'transformer:lvp')!;
-    expect(result.status).toBe('blocked');
+    expect(checks([lvp([flats(10)], 800)]).find((c) => c.id === 'transformer:lvp')!.status).toBe('blocked');
     const withoutNote = allVerified.filter((c) => !c.id.startsWith('dewa-transformer-md-note'));
-    const noNote = checks([lvp([load({ category: 'other', phaseKW: { R: 1, Y: 1, B: 1 } })])], withoutNote).find((c) => c.id === 'transformer:lvp')!;
-    expect(noNote.status).toBe('blocked');
+    expect(checks([lvp([flats(10)])], withoutNote).find((c) => c.id === 'transformer:lvp')!.status).toBe('blocked');
+  });
+});
+
+describe('phase imbalance (the user\'s limits)', () => {
+  it('allows less than 10% on SMDBs and MDBs', () => {
+    const smdb = board({ id: 's', ref: 'SMDB', kind: 'SMDB', loads: [load({ phaseKW: { R: 10, Y: 10, B: 10.9 } })] });
+    expect(checks([smdb]).find((c) => c.id === 'imbalance:s')!.status).toBe('pass');
+    const bad = board({ id: 's', ref: 'SMDB', kind: 'SMDB', loads: [load({ phaseKW: { R: 10, Y: 10, B: 13 } })] });
+    expect(checks([bad]).find((c) => c.id === 'imbalance:s')!.status).toBe('fail');
+  });
+
+  it('allows less than 3% on final DBs and unit DB types', () => {
+    const db = board({ id: 'd', ref: 'DB', kind: 'DB', loads: [load({ phaseKW: { R: 3, Y: 3, B: 3.3 } })] });
+    expect(checks([db]).find((c) => c.id === 'imbalance:d')!.status).toBe('fail');
+    const unit = { id: 'u', name: 'STD', phaseKW: { R: 2.6, Y: 3, B: 3.1 }, phases: 3 as const, metered: true, factorRef: 'dfFlatDb' };
+    const result = checks([db], allVerified, { unitTypes: [unit] }).find((c) => c.id === 'imbalance:Unit DB type STD')!;
+    expect(result).toMatchObject({ status: 'fail', message: expect.stringContaining('limit below 3%') });
   });
 });
 
@@ -157,6 +168,7 @@ describe('spare capacity', () => {
         ref: 'SMDB',
         kind: 'SMDB',
         parentId: 'mdb',
+        rowFactor: declared(0.7),
         loads: [
           load({ id: 'flats', phaseKW: { R: 20 / 3, Y: 20 / 3, B: 20 / 3 }, demandFactor: declared(0.7) }),
           load({ id: 'spare', kind: 'spare', phaseKW: { R: 10 / 3, Y: 10 / 3, B: 10 / 3 }, demandFactor: declared(1) }),

@@ -54,9 +54,11 @@ export interface BoardResult {
 }
 
 /**
- * Totals every board from the bottom up. Diversity is applied where a load is first grouped (a
- * board's own circuits, or a direct load) and demands are then added upwards, times any further
- * factor a board declares for the boards it feeds.
+ * Totals every board from the bottom up. A board's own circuits and direct loads take their own
+ * demand factors. A sub-board counts at the board above as its connected load less standby and
+ * spares, times its row factor (the user's rule of 2026-09-19, as in the DEWA-approved reference).
+ * Its own maximum demand stays on its own schedule. Spares keep their own rule: in full at their
+ * panel, then replaced by a main board's spare factor where one is set.
  */
 export function computeBoards(boards: Board[], pointTypes: PointType[], factors?: Map<string, number>): Map<string, BoardResult> {
   const watts = new Map(pointTypes.map((t) => [t.id, t.watts]));
@@ -119,9 +121,11 @@ export function computeBoards(boards: Board[], pointTypes: PointType[], factors?
       const result = visit(child);
       connected = addKW(connected, result.connected);
       standbyKW += result.standbyKW;
+      const rowFactor = child.rowFactor ?? board.childFactor;
+      if (!rowFactor) issues.push(`${child.ref}: no row factor is set at ${board.ref}, so its row counts its full connected load.`);
+      const factor = rowFactor ? factorValue(rowFactor, factors) : 1;
       // Spare demand is carried separately so a main board can apply its own spare factor to it.
-      const childFactor = board.childFactor ? factorValue(board.childFactor, factors) : 1;
-      demandKW += (result.demandKW - result.spareDemandKW) * childFactor + result.spareDemandKW;
+      demandKW += (result.connectedKW - result.standbyKW - result.spareKW) * factor + result.spareDemandKW;
       spareKW += result.spareKW;
       spareDemandKW += result.spareDemandKW;
       for (const key of Object.keys(byCategory) as (keyof CategoryKW)[]) byCategory[key] += result.byCategory[key];

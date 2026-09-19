@@ -92,6 +92,10 @@ export interface Circuit {
   remarks: string;
 }
 
+/** Where a cable end is, which decides its gland (BW indoors; CW outdoors and in pump rooms). */
+export type Environment = 'indoor' | 'outdoor' | 'pumpRoom';
+export const ENVIRONMENT_LABEL: Record<Environment, string> = { indoor: 'Indoor', outdoor: 'Outdoor', pumpRoom: 'Pump room' };
+
 /** A load fed directly from a panel: a pump, a lift, a spare way, future provision. */
 export interface DirectLoad {
   id: string;
@@ -105,6 +109,18 @@ export interface DirectLoad {
   /** Largest single motor or compressor, for the DEWA approval rule on loads above 100 kW. */
   largestMotorKW: number | null;
   remarks: string;
+  /** Single- or three-phase way; absent means three-phase. */
+  phases?: 1 | 3;
+  /** A residential unit (flat) DB of this unit type, placed by the typical-floor generator. */
+  unitTypeId?: string;
+  /** Cyclic phase rotation applied to the unit type's R/Y/B loads (1 = R→Y, Y→B, B→R). */
+  rotation?: 0 | 1 | 2;
+  /** A DEWA tenant meter is needed for this way. */
+  metered?: boolean;
+  /** Location of the load end of this way's cable, for its gland. */
+  environment?: Environment | null;
+  /** The way's cable is fire-rated (LSF glands). */
+  fireRated?: boolean;
 }
 
 export type BoardKind = 'LVP' | 'MDB' | 'SMDB' | 'EMDB' | 'ATS' | 'MCC' | 'DB';
@@ -133,8 +149,22 @@ export interface Board {
   loadCategory: LoadCategory | null;
   /** Diversity applied to this board's own final circuits. */
   circuitDemandFactor: Factor | null;
-  /** Further diversity applied to the demand of boards fed from this one; empty means none. */
+  /**
+   * No longer used for new work: sub-boards now carry their own row factor. Kept so older projects
+   * still load; a sub-board without a row factor falls back to this.
+   */
   childFactor: Factor | null;
+  /**
+   * Demand factor of this board's row at the board above (the user's rule of 2026-09-19): the row
+   * counts this board's connected load less standby × this factor, as in the DEWA-approved reference.
+   */
+  rowFactor?: Factor | null;
+  /** Where the board is, for the gland at its end of each cable. */
+  environment?: Environment | null;
+  /** Its incoming cable is fire-rated (LSF glands). */
+  fireRated?: boolean;
+  /** Set on boards the typical-floor generator made, so it can update them later. */
+  generated?: { by: 'typical'; key: string };
   /**
    * Factor for all spare capacity aggregated at this board (e.g. 0.8 at the main distribution
    * board), replacing the spare ways' own panel-level factor. Empty means spares keep their own.

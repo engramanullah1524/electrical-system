@@ -3,10 +3,11 @@ import type { DemandFactorEntry, Factor } from '../design/types';
 import { today } from '../db/db';
 
 /** Library clauses whose parameters seed a project's demand factor table, with readable names. */
-const SEED_CLAUSES = ['designer-demand-factors/by-load-type', 'doe-ewr-2020/G2-landlord'];
+const SEED_CLAUSES = ['designer-demand-factors/by-load-type', 'designer-demand-factors/flat-db', 'doe-ewr-2020/G2-landlord'];
 
 const LABELS: Record<string, string> = {
   dfResidentialSmdb: 'Residential SMDB',
+  dfFlatDb: 'Residential unit (flat) DB',
   dfPumps: 'Pumps (incl. chilled-water)',
   dfAhuOahu: 'AHU / OAHU',
   dfPassengerLift: 'Passenger lift',

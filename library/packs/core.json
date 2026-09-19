@@ -2,7 +2,7 @@
   "format": "electrical-system-library",
   "formatVersion": 1,
   "packId": "core",
-  "packVersion": "2026-09-18.2",
+  "packVersion": "2026-09-19.1",
   "sources": [
     {
       "id": "dm-dbc-2021",
@@ -159,6 +159,32 @@
       "status": "unverified",
       "checkedOn": "",
       "notes": "Used for load-schedule maximum demand only. Transformer demand uses the DEWA transformer note instead (user's decision, 2026-09-18)."
+    },
+    {
+      "id": "designer-sizing-rules",
+      "title": "Breaker, cable, meter and transformer selection rules (designated by the user)",
+      "issuer": "The user",
+      "type": "project",
+      "edition": "Stated 2026-09-19",
+      "date": "2026-09-19",
+      "url": "",
+      "localPath": "",
+      "status": "unverified",
+      "checkedOn": "",
+      "notes": "Chosen by the user on 2026-09-19 after comparing candidate rules with a DEWA-approved reference schedule, where no single rule reproduced every approved rating. The breaker rule is the handwritten note on the DEWA reference chart photo (chart B)."
+    },
+    {
+      "id": "designer-glands-lugs",
+      "title": "Cable gland and lug sizes by cable, and purchase quantities per cable run (user's schedule)",
+      "issuer": "The user",
+      "type": "project",
+      "edition": "Supplied 2026-09-19",
+      "date": "2026-09-19",
+      "url": "",
+      "localPath": "User's PDF 'CABLE GLANDS AND LUGS SIZES' and lug list image (kept locally)",
+      "status": "unverified",
+      "checkedOn": "",
+      "notes": "Gland codes follow the supplier's naming, e.g. 'Brass Cable Gland BW - 25S-LSF'. ECC lug holes and most ECC gland sizes are not in the schedule; the user fills them in the project's gland and lug table."
     }
   ],
   "clauses": [
@@ -1366,6 +1392,41 @@
           "key": "checkMeterAboveKW",
           "value": 900,
           "unit": "kW"
+        },
+        {
+          "key": "ctMaxKW_100",
+          "value": 55,
+          "unit": "kW"
+        },
+        {
+          "key": "ctMaxKW_200",
+          "value": 110,
+          "unit": "kW"
+        },
+        {
+          "key": "ctMaxKW_300",
+          "value": 160,
+          "unit": "kW"
+        },
+        {
+          "key": "ctMaxKW_600",
+          "value": 350,
+          "unit": "kW"
+        },
+        {
+          "key": "ctMaxKW_1000",
+          "value": 550,
+          "unit": "kW"
+        },
+        {
+          "key": "ctMaxKW_1600",
+          "value": 800,
+          "unit": "kW"
+        },
+        {
+          "key": "ct2000AboveKW",
+          "value": 800,
+          "unit": "kW"
         }
       ],
       "tags": [
@@ -1492,6 +1553,573 @@
         "diversity",
         "load schedule",
         "maximum demand"
+      ]
+    },
+    {
+      "id": "dewa-reference-chart-b/cable-selection-4c",
+      "sourceId": "dewa-reference-chart-b",
+      "ref": "XLPE/SWA/PVC 4-core cable table",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Maximum load and breaker capacity for 4-core XLPE/SWA/PVC cables",
+      "summary": "For copper 4-core XLPE/SWA/PVC cables the chart gives the load each size carries and its breaker capacity: 10 mm² up to 15 kW, 40 A; 16 mm² 18–36 kW, 60–80 A; 25 mm² 37–52 kW, 100 A; 35 mm² 53–62 kW, 125 A; 50 mm² 63–80 kW, 160 A; 70 mm² 81–100 kW, 200 A; 95 mm² 101–128 kW, 225–250 A; 120 mm² up to 130 kW, 250 A; 150 mm² 131–150 kW, 300 A; 185 mm² 151–175 kW, 350 A; 240 mm² 176–200 kW, 400 A; 300 mm² 201–250 kW, 500 A; 2×150 mm² 251–300 kW, 600 A; 2×240 mm² 301–400 kW, 800 A; 2×300 mm² 401–500 kW, 1,000 A; 3×240 mm² 501–600 kW, 1,200 A; 4×240 mm² 601–800 kW, 1,600 A; 4×300 mm² 801–1,000 kW, 2,000 A.",
+      "params": [
+        {
+          "key": "maxKW_10",
+          "value": 15,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_10",
+          "value": 40,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_16",
+          "value": 36,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_16",
+          "value": 80,
+          "unit": "A"
+        },
+        {
+          "key": "cbMinA_16",
+          "value": 60,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_25",
+          "value": 52,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_25",
+          "value": 100,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_35",
+          "value": 62,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_35",
+          "value": 125,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_50",
+          "value": 80,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_50",
+          "value": 160,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_70",
+          "value": 100,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_70",
+          "value": 200,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_95",
+          "value": 128,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_95",
+          "value": 250,
+          "unit": "A"
+        },
+        {
+          "key": "cbMinA_95",
+          "value": 225,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_120",
+          "value": 130,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_120",
+          "value": 250,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_150",
+          "value": 150,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_150",
+          "value": 300,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_185",
+          "value": 175,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_185",
+          "value": 350,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_240",
+          "value": 200,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_240",
+          "value": 400,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_300",
+          "value": 250,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_300",
+          "value": 500,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_2x150",
+          "value": 300,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_2x150",
+          "value": 600,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_2x240",
+          "value": 400,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_2x240",
+          "value": 800,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_2x300",
+          "value": 500,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_2x300",
+          "value": 1000,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_3x240",
+          "value": 600,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_3x240",
+          "value": 1200,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_4x240",
+          "value": 800,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_4x240",
+          "value": 1600,
+          "unit": "A"
+        },
+        {
+          "key": "maxKW_4x300",
+          "value": 1000,
+          "unit": "kW"
+        },
+        {
+          "key": "cbA_4x300",
+          "value": 2000,
+          "unit": "A"
+        }
+      ],
+      "tags": [
+        "cable sizing",
+        "breaker",
+        "dewa submission"
+      ]
+    },
+    {
+      "id": "dm-dbc-2021/G.4.19.3",
+      "sourceId": "dm-dbc-2021",
+      "ref": "G.4.19.3, Table G.20",
+      "page": 464,
+      "pageLabel": "G 62",
+      "title": "Earth continuity conductors (ECC)",
+      "summary": "Every circuit in MDBs, SMDBs and final DBs has its own green/yellow LSF-insulated copper ECC, run with the circuit's phase and neutral conductors and ended with tinned copper lugs at both ends. Minimum ECC size by phase conductor size S (Table G.20): up to 16 mm², the same as S; above 16 and below 35 mm², 16 mm²; above 35 mm², S/2. The table gives no value for exactly 35 mm².",
+      "params": [
+        {
+          "key": "eccSameAsPhaseUpToMm2",
+          "value": 16,
+          "unit": "mm²"
+        },
+        {
+          "key": "eccMidSizeMm2",
+          "value": 16,
+          "unit": "mm²"
+        },
+        {
+          "key": "eccMidBelowMm2",
+          "value": 35,
+          "unit": "mm²"
+        },
+        {
+          "key": "eccHalfAboveMm2",
+          "value": 35,
+          "unit": "mm²"
+        },
+        {
+          "key": "eccInsulation",
+          "value": "G/Y LSF",
+          "unit": ""
+        },
+        {
+          "key": "eccLugs",
+          "value": "tinned copper, both ends",
+          "unit": ""
+        }
+      ],
+      "tags": [
+        "earthing",
+        "ECC",
+        "cable sizing"
+      ]
+    },
+    {
+      "id": "designer-sizing-rules/breaker-cable",
+      "sourceId": "designer-sizing-rules",
+      "ref": "Stated by the user",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Incomer breaker and feeder cable from the total connected load",
+      "summary": "For flat DBs, SMDBs and MDBs the breaker is the next rating at or above the total connected load (kW, standby included) × 1.25 × 1.73 A, as in the handwritten note on the DEWA reference chart photo. Ratings are the chart's breaker values, with 63 A and 630 A (as on the reference project) in place of 60 A and 600 A. The cable is the smallest 4-core XLPE/SWA/PVC row of the chart whose breaker capacity (the upper value where a range is printed) is at least that breaker and whose maximum load is at least the connected load. Cable makers' current ratings are only a cross-check. LV panels take their incomer from the transformer instead.",
+      "params": [
+        {
+          "key": "breakerMarginFactor",
+          "value": 1.25,
+          "unit": ""
+        },
+        {
+          "key": "ampsPerKW",
+          "value": 1.73,
+          "unit": "A/kW"
+        },
+        {
+          "key": "breakerRatingsA",
+          "value": "6,10,16,20,32,40,63,80,100,125,160,200,225,250,300,350,400,500,630,800,1000,1200,1600,2000,2500",
+          "unit": "A"
+        },
+        {
+          "key": "conductorSizesMm2",
+          "value": "1.5,2.5,4,6,10,16,25,35,50,70,95,120,150,185,240,300",
+          "unit": "mm²"
+        }
+      ],
+      "tags": [
+        "cable sizing",
+        "breaker",
+        "load schedule"
+      ]
+    },
+    {
+      "id": "designer-sizing-rules/row-demand",
+      "sourceId": "designer-sizing-rules",
+      "ref": "Stated by the user",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Maximum demand of a sub-board counted at the board above",
+      "summary": "At the board above, a sub-board's row counts its connected load less standby, times the row's demand factor for that load type (for example 0.7 for a residential floor SMDB); the sub-board's own schedule keeps its own maximum demand. This is how the reference DEWA-approved schedule is built. Spare capacity keeps its own rule: in full at its panel, at the main-board factor where it is aggregated.",
+      "params": [
+        {
+          "key": "rowDemandBasis",
+          "value": "connected load less standby × row factor",
+          "unit": ""
+        }
+      ],
+      "tags": [
+        "diversity",
+        "load schedule",
+        "maximum demand"
+      ]
+    },
+    {
+      "id": "designer-sizing-rules/lv-panel-transformer",
+      "sourceId": "designer-sizing-rules",
+      "ref": "Stated by the user",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Transformer size, LV panel incomer and CT meter",
+      "summary": "The transformer is the smallest rating whose limit in the DEWA transformer note is at least the LV panel's schedule maximum demand; the note's own diversity factors are not used for sizing. The LV panel main incomer is the next breaker rating at or above the transformer full-load current (kVA ÷ (√3 × 0.4 kV)), set at full-load current ÷ rating; its incoming cable is by DEWA. The DEWA CT meter is picked from the chart's metering table using the panel's maximum demand.",
+      "params": [
+        {
+          "key": "transformerBasis",
+          "value": "schedule maximum demand",
+          "unit": ""
+        },
+        {
+          "key": "lvIncomerBasis",
+          "value": "transformer full-load current",
+          "unit": ""
+        },
+        {
+          "key": "ctMeterBasis",
+          "value": "maximum demand",
+          "unit": ""
+        }
+      ],
+      "tags": [
+        "transformer",
+        "metering",
+        "dewa submission"
+      ]
+    },
+    {
+      "id": "designer-sizing-rules/phase-imbalance",
+      "sourceId": "designer-sizing-rules",
+      "ref": "Stated by the user",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Allowed phase imbalance",
+      "summary": "Phase imbalance must be less than 3% on final DBs and less than 10% on SMDBs and MDBs, measured as the largest deviation of any phase from the average of the three phases.",
+      "params": [
+        {
+          "key": "imbalanceMaxPercentFinalDb",
+          "value": 3,
+          "unit": "%"
+        },
+        {
+          "key": "imbalanceMaxPercentSmdbMdb",
+          "value": 10,
+          "unit": "%"
+        }
+      ],
+      "tags": [
+        "phase balance",
+        "load schedule"
+      ]
+    },
+    {
+      "id": "designer-sizing-rules/ecc-dewa-precedent",
+      "sourceId": "designer-sizing-rules",
+      "ref": "Stated by the user",
+      "page": 1,
+      "pageLabel": "",
+      "title": "70 mm² ECC with 150 mm² cables (DEWA-approved precedent)",
+      "summary": "DEWA approved a 70 mm² ECC with 4-core 150 mm² cables on the reference project's schedule, below Table G.20's S/2 = 75 mm², whose next standard size is 95 mm². Offered as a project option; the Building Code size is the default.",
+      "params": [
+        {
+          "key": "eccFor150Mm2",
+          "value": 70,
+          "unit": "mm²"
+        }
+      ],
+      "tags": [
+        "earthing",
+        "ECC"
+      ]
+    },
+    {
+      "id": "designer-demand-factors/flat-db",
+      "sourceId": "designer-demand-factors",
+      "ref": "Reference schedule, flat DB sheets",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Demand factor for residential unit (flat) DBs",
+      "summary": "A flat's maximum demand is its connected load × 0.7, as on the reference DEWA-approved schedule's flat DB sheets and on the SMDB rows that feed them.",
+      "params": [
+        {
+          "key": "dfFlatDb",
+          "value": 0.7,
+          "unit": ""
+        }
+      ],
+      "tags": [
+        "diversity",
+        "load schedule",
+        "maximum demand"
+      ]
+    },
+    {
+      "id": "designer-glands-lugs/schedule",
+      "sourceId": "designer-glands-lugs",
+      "ref": "User's gland and lug schedule",
+      "page": 1,
+      "pageLabel": "",
+      "title": "Gland and lug sizes per cable, and purchase quantities per run",
+      "summary": "Each cable run is one 4-core cable with its ECC and needs two glands and eight lugs for the 4-core cable and two 'LS' glands and two lugs for the ECC. Glands are BW indoors and CW outdoors and in pump rooms, chosen at each end by where that end is; fire-rated cables take the LSF version. Sizes by 4-core cable: 4 mm² 20L, lug 4×4; 6 mm² 20L, 6×6; 10 mm² 25S, 10×6; 16 mm² 25L, 16×6; 25 mm² 32S, 25×8; 50 mm² 40S; 70 mm² 40L, 70×8; 95 mm² 40L, 95×8; 120 mm² 50S, 120×8; 150 mm² 50L, 150×8; 240 mm² 63L, 240×12; 300 mm² 75L, 300×12. ECC glands: LS 32 mm for 1C 150 and 1C 120 ECCs.",
+      "params": [
+        {
+          "key": "glandsPerRun",
+          "value": 2,
+          "unit": ""
+        },
+        {
+          "key": "phaseLugsPerRun",
+          "value": 8,
+          "unit": ""
+        },
+        {
+          "key": "eccGlandsPerRun",
+          "value": 2,
+          "unit": ""
+        },
+        {
+          "key": "eccLugsPerRun",
+          "value": 2,
+          "unit": ""
+        },
+        {
+          "key": "gland_4",
+          "value": "20L",
+          "unit": ""
+        },
+        {
+          "key": "lug_4",
+          "value": "4 × 4 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_6",
+          "value": "20L",
+          "unit": ""
+        },
+        {
+          "key": "lug_6",
+          "value": "6 × 6 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_10",
+          "value": "25S",
+          "unit": ""
+        },
+        {
+          "key": "lug_10",
+          "value": "10 × 6 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_16",
+          "value": "25L",
+          "unit": ""
+        },
+        {
+          "key": "lug_16",
+          "value": "16 × 6 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_25",
+          "value": "32S",
+          "unit": ""
+        },
+        {
+          "key": "lug_25",
+          "value": "25 × 8 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_50",
+          "value": "40S",
+          "unit": ""
+        },
+        {
+          "key": "gland_70",
+          "value": "40L",
+          "unit": ""
+        },
+        {
+          "key": "lug_70",
+          "value": "70 × 8 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_95",
+          "value": "40L",
+          "unit": ""
+        },
+        {
+          "key": "lug_95",
+          "value": "95 × 8 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_120",
+          "value": "50S",
+          "unit": ""
+        },
+        {
+          "key": "lug_120",
+          "value": "120 × 8 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_150",
+          "value": "50L",
+          "unit": ""
+        },
+        {
+          "key": "lug_150",
+          "value": "150 × 8 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_240",
+          "value": "63L",
+          "unit": ""
+        },
+        {
+          "key": "lug_240",
+          "value": "240 × 12 mm",
+          "unit": ""
+        },
+        {
+          "key": "gland_300",
+          "value": "75L",
+          "unit": ""
+        },
+        {
+          "key": "lug_300",
+          "value": "300 × 12 mm",
+          "unit": ""
+        },
+        {
+          "key": "eccGland_120",
+          "value": "LS 32 mm",
+          "unit": ""
+        },
+        {
+          "key": "eccGland_150",
+          "value": "LS 32 mm",
+          "unit": ""
+        }
+      ],
+      "tags": [
+        "glands",
+        "lugs",
+        "procurement"
       ]
     }
   ]

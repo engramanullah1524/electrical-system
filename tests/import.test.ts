@@ -61,6 +61,7 @@ describe('consultant template import', () => {
     const mdb = plan.boards.find((b) => b.ref === 'MAIN DB-1-TY')!;
     expect(mdb.parentId).toBe(lvp.id);
     expect(mdb.building).toBe('Y');
+    expect(mdb.rowFactor).toBeDefined(); // its row at the panel takes a factor like any way
     expect(lvp.loads.map((l) => l.label)).toEqual(['SMDB-1F', 'SPARE', 'FIRE ELE PUMP']);
     const results = computeBoards(plan.boards, [], factorTable(factors));
     expect(results.get(lvp.id)!.connectedKW).toBeCloseTo(255, 10);
