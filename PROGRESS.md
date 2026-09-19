@@ -132,7 +132,9 @@ Later phases: 2 QA/QC, T&C, handover · 3 MTO and procurement · 4 site executio
 
 ## Next step
 
-1. Importer for the pilot consultant's workbook template, covering SMDB and 3-phase DB sheets.
+0. DONE 2026-09-19: in-app importer for the pilot consultant's template (panel sheets, links, factor
+   suggestions, arithmetic findings). Tested in Node against the real workbook; not yet tried in the browser.
+1. (was) Importer for the pilot consultant's workbook template, covering SMDB and 3-phase DB sheets.
    Imported ways get table-linked factors and unset transformer load types for the user to
    confirm.
 2. Point-type grid for circuits, and exports (load schedule xlsx/PDF in the approved format).

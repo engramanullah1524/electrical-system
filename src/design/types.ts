@@ -145,4 +145,6 @@ export interface Board {
   meters: { singlePhase: number; threePhase: number; ct: number };
   location: string;
   remarks: string;
+  /** Set when the board came from an imported workbook, so a re-import replaces it. */
+  source?: { file: string; sheet: string; importedOn: string };
 }

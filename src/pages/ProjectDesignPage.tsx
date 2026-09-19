@@ -1,6 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { db, today } from '../db/db';
+import type { SheetGrid } from '../import/grid';
+import { planImport } from '../import/plan';
+import { readWorkbook } from '../import/xlsx';
 import { runChecks, type CheckResult, type CheckStatus } from '../design/checks';
 import { computeBoards, factorTable, type BoardResult } from '../design/engine';
 import type { Board, BoardKind, DemandFactorEntry } from '../design/types';
@@ -9,7 +12,7 @@ import { basisText, changeFactor, seedFactors } from '../project/factors';
 import type { Project } from '../project/types';
 import { BoardEditor } from './design/BoardEditor';
 
-type Tab = 'boards' | 'factors' | 'settings' | 'checks';
+type Tab = 'boards' | 'factors' | 'settings' | 'checks' | 'import';
 const fmt = (n: number | null | undefined, digits = 2) => (n === null || n === undefined ? '—' : n.toLocaleString('en-US', { maximumFractionDigits: digits }));
 
 export function ProjectDesignPage({ projectId }: { projectId: string }) {
@@ -32,7 +35,13 @@ export function ProjectDesignPage({ projectId }: { projectId: string }) {
   }
   const update = (patch: Partial<Project>) => db.projects.update(project.id, { ...patch, updatedAt: new Date().toISOString() });
 
-  const labels: Record<Tab, string> = { boards: 'Boards', factors: `Demand factors (${factors.length})`, settings: 'Settings', checks: 'Checks' };
+  const labels: Record<Tab, string> = {
+    boards: 'Boards',
+    factors: `Demand factors (${factors.length})`,
+    settings: 'Settings',
+    checks: 'Checks',
+    import: 'Import workbook',
+  };
   return (
     <section>
       <a href="#/projects" className="meta">
@@ -50,6 +59,7 @@ export function ProjectDesignPage({ projectId }: { projectId: string }) {
       {tab === 'boards' && <BoardsTab project={project} boards={boards} results={results} factors={factors} />}
       {tab === 'factors' && <FactorsTab factors={factors} onChange={(demandFactors) => update({ demandFactors })} seed={() => update({ demandFactors: seedFactors(clauses, factors) })} />}
       {tab === 'settings' && <SettingsTab project={project} update={update} />}
+      {tab === 'import' && <ImportTab project={project} boards={boards} factors={factors} />}
       {tab === 'checks' && (
         <ChecksTab
           checks={
@@ -91,7 +101,9 @@ function treeOrder(boards: Board[]): { board: Board; depth: number }[] {
 }
 
 function BoardsTab({ project, boards, results, factors }: { project: Project; boards: Board[]; results: Map<string, BoardResult>; factors: DemandFactorEntry[] }) {
-  const buildings = project.buildings.length ? project.buildings : [''];
+  // Buildings named on the project plus any that imported boards brought with them.
+  const named = [...new Set([...project.buildings, ...boards.map((b) => b.building)])];
+  const buildings = named.length ? named : [''];
   const [building, setBuilding] = useState(buildings[0]);
   const [selected, setSelected] = useState<string | null>(null);
   const [ref, setRef] = useState('');
@@ -390,6 +402,153 @@ function ChecksTab({ checks, boards }: { checks: CheckResult[]; boards: Board[] 
           </details>
         );
       })}
+    </>
+  );
+}
+
+/** The tower or building code at the end of a sheet name, e.g. "TA" in "LV PANEL-1-TA". */
+const suffixOf = (name: string) => /(?:^|[-\s])(T[A-Z])(?=$|[\s&])/.exec(name.toUpperCase())?.[1] ?? '';
+
+function ImportTab({ project, boards, factors }: { project: Project; boards: Board[]; factors: DemandFactorEntry[] }) {
+  const [sheets, setSheets] = useState<SheetGrid[] | null>(null);
+  const [file, setFile] = useState('');
+  const [status, setStatus] = useState('');
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+
+  const plan = useMemo(
+    () =>
+      sheets
+        ? planImport(sheets, {
+            projectId: project.id,
+            file,
+            factors,
+            buildingFor: (name) => {
+              const suffix = suffixOf(name);
+              return mapping[suffix] ?? suffix;
+            },
+            today: today(),
+          })
+        : null,
+    [sheets, file, factors, mapping, project.id],
+  );
+  const suffixes = useMemo(() => [...new Set((plan?.boards ?? []).map((b) => suffixOf(b.ref)))].sort(), [plan]);
+  const previous = boards.filter((b) => b.source?.file === file);
+
+  async function choose(event: ChangeEvent<HTMLInputElement>) {
+    const chosen = event.target.files?.[0];
+    if (!chosen) return;
+    setStatus('Reading the workbook…');
+    try {
+      setSheets(await readWorkbook(await chosen.arrayBuffer()));
+      setFile(chosen.name);
+      setStatus('');
+    } catch (error) {
+      setSheets(null);
+      setStatus(`Could not read the workbook: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  async function importNow() {
+    if (!plan) return;
+    await db.transaction('rw', db.boards, async () => {
+      await db.boards.bulkDelete(previous.map((b) => b.id));
+      await db.boards.bulkAdd(plan.boards);
+    });
+    setStatus(
+      `Imported ${plan.boards.length} boards${previous.length ? `, replacing ${previous.length} from the earlier import of ${file}` : ''}. Review them on the Boards tab.`,
+    );
+  }
+
+  return (
+    <>
+      <div className="card form">
+        <p className="muted">
+          Reads the consultant's load schedule workbook on this device; the file is not uploaded anywhere. Panel sheets
+          become boards, and a way that names another sheet becomes that board. Factors are suggested from way names
+          and link to your factor table. Transformer load types and kVA are left for you to set.
+        </p>
+        {factors.length === 0 && <p className="warn">Load the library factors on the Demand factors tab first, so ways get factor suggestions.</p>}
+        <label className="button secondary">
+          Choose .xlsx workbook
+          <input type="file" accept=".xlsx" hidden onChange={choose} />
+        </label>
+        {status && <p role="status">{status}</p>}
+      </div>
+
+      {plan && (
+        <>
+          <div className="card form">
+            <h2>{file}</h2>
+            <p>
+              {plan.boards.length} boards, {plan.boards.reduce((n, b) => n + b.loads.length, 0)} ways, {plan.findings.length} arithmetic
+              finding(s), {plan.skipped.length} sheet(s) not imported.
+            </p>
+            {suffixes.some(Boolean) && (
+              <div className="row">
+                {suffixes.map((s) => (
+                  <label key={s || 'none'}>
+                    Sheets ending {s || '(no code)'} go to building
+                    <input value={mapping[s] ?? s} onChange={(e) => setMapping({ ...mapping, [s]: e.target.value })} list="project-buildings" />
+                  </label>
+                ))}
+                <datalist id="project-buildings">
+                  {project.buildings.map((b) => (
+                    <option key={b} value={b} />
+                  ))}
+                </datalist>
+              </div>
+            )}
+            <ul className="list">
+              {plan.boards.map((b) => (
+                <li key={b.id} className="check">
+                  <strong>{b.ref}</strong> <span className="meta">({b.building || 'no building'})</span> ← {plan.boards.find((x) => x.id === b.parentId)?.ref ?? 'DEWA supply'} ·{' '}
+                  {b.loads.length} way(s)
+                </li>
+              ))}
+            </ul>
+            {previous.length > 0 && <p className="warn">Importing replaces the {previous.length} board(s) imported earlier from this file, including any edits made to them.</p>}
+            <button type="button" onClick={importNow}>
+              Import {plan.boards.length} boards
+            </button>
+          </div>
+          {plan.findings.length > 0 && (
+            <details className="card" open>
+              <summary>Arithmetic findings in the workbook ({plan.findings.length})</summary>
+              <ul>
+                {plan.findings.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <details className="card">
+            <summary>Suggestions to confirm ({plan.suggestions.length})</summary>
+            <ul>
+              {plan.suggestions.map((s, i) => (
+                <li key={i} className="meta">
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </details>
+          {plan.summaries.length > 0 && (
+            <details className="card">
+              <summary>Summary sheets (for cross-checking)</summary>
+              <ul>
+                {plan.summaries.map((s) => (
+                  <li key={s.name} className="meta">
+                    {s.name}: {fmt(s.totalKW)} kW connected
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <details className="card">
+            <summary>Sheets not imported ({plan.skipped.length})</summary>
+            <p className="meta">{plan.skipped.join(', ')}</p>
+          </details>
+        </>
+      )}
     </>
   );
 }
