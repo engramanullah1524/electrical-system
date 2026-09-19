@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { db } from '../../db/db';
 import {
-  LOAD_CATEGORIES,
-  LOAD_CATEGORY_LABEL,
+  ENVIRONMENT_LABEL,
   type Board,
   type BoardKind,
   type CableKind,
   type Circuit,
   type DemandFactorEntry,
   type DirectLoad,
-  type LoadCategory,
+  type Environment,
 } from '../../design/types';
 import { FactorPicker } from './FactorPicker';
 
@@ -22,13 +21,14 @@ const CABLE_KINDS: Record<CableKind, string> = {
 const num = (text: string): number | null => (text.trim() === '' ? null : Number(text));
 const text = (value: number | null | undefined) => (value === null || value === undefined ? '' : String(value));
 
-function CategorySelect({ value, onChange }: { value: LoadCategory | null; onChange: (v: LoadCategory | null) => void }) {
+/** Where a cable end is: it decides the gland (BW indoors, CW outdoors and in pump rooms). */
+function EnvironmentSelect({ value, onChange }: { value: Environment | null | undefined; onChange: (v: Environment | null) => void }) {
   return (
-    <select value={value ?? ''} onChange={(e) => onChange((e.target.value || null) as LoadCategory | null)} className={value ? '' : 'missing'}>
+    <select value={value ?? ''} onChange={(e) => onChange((e.target.value || null) as Environment | null)} className={value ? '' : 'missing'}>
       <option value="">Not set</option>
-      {LOAD_CATEGORIES.map((c) => (
-        <option key={c} value={c}>
-          {LOAD_CATEGORY_LABEL[c]}
+      {(Object.keys(ENVIRONMENT_LABEL) as Environment[]).map((env) => (
+        <option key={env} value={env}>
+          {ENVIRONMENT_LABEL[env]}
         </option>
       ))}
     </select>
@@ -143,6 +143,25 @@ export function BoardEditor({
         </label>
       </div>
 
+      <div className="row">
+        {draft.parentId && (
+          <label>
+            Row factor at {parents.find((b) => b.id === draft.parentId)?.ref ?? 'the board above'}
+            <FactorPicker value={draft.rowFactor ?? null} entries={factors} allowNone onChange={(f) => set({ rowFactor: f })} />
+          </label>
+        )}
+        <label>
+          Location (for glands)
+          <EnvironmentSelect value={draft.environment} onChange={(v) => set({ environment: v })} />
+        </label>
+        {draft.parentId && (
+          <label className="check-label">
+            <input type="checkbox" checked={draft.fireRated ?? false} onChange={(e) => set({ fireRated: e.target.checked })} /> Incoming cable is fire-rated
+          </label>
+        )}
+      </div>
+      {draft.generated && <p className="meta">Made by the typical-floor plan: its unit DBs are rebuilt when the plan is applied again. Your own ways here are kept.</p>}
+
       {!draft.parentId && (
         <div className="row">
           <label>
@@ -242,10 +261,6 @@ export function BoardEditor({
 
       <div className="row">
         <label>
-          Transformer load type of its circuits
-          <CategorySelect value={draft.loadCategory} onChange={(v) => set({ loadCategory: v })} />
-        </label>
-        <label>
           Demand factor of its circuits
           <FactorPicker value={draft.circuitDemandFactor} entries={factors} allowNone onChange={(f) => set({ circuitDemandFactor: f })} />
         </label>
@@ -262,13 +277,14 @@ export function BoardEditor({
             <tr>
               <th>Way / load</th>
               <th>Kind</th>
-              <th>Transformer type</th>
               <th>R kW</th>
               <th>Y kW</th>
               <th>B kW</th>
               <th>Demand factor</th>
               <th>Standby kW</th>
               <th>Largest motor kW</th>
+              <th>Far end</th>
+              <th>FR cable</th>
               <th />
             </tr>
           </thead>
@@ -284,9 +300,6 @@ export function BoardEditor({
                     <option value="spare">Spare</option>
                     <option value="future">Future</option>
                   </select>
-                </td>
-                <td>
-                  <CategorySelect value={load.category} onChange={(v) => setLoad(i, { category: v })} />
                 </td>
                 {(['R', 'Y', 'B'] as const).map((ph) => (
                   <td key={ph}>
@@ -306,6 +319,12 @@ export function BoardEditor({
                 </td>
                 <td>
                   <input type="number" className="num" value={text(load.largestMotorKW)} onChange={(e) => setLoad(i, { largestMotorKW: num(e.target.value) })} />
+                </td>
+                <td>
+                  <EnvironmentSelect value={load.environment} onChange={(v) => setLoad(i, { environment: v })} />
+                </td>
+                <td>
+                  <input type="checkbox" checked={load.fireRated ?? false} onChange={(e) => setLoad(i, { fireRated: e.target.checked })} aria-label="Fire-rated cable" />
                 </td>
                 <td>
                   <button type="button" className="secondary small" onClick={() => set({ loads: draft.loads.filter((_, j) => j !== i) })}>

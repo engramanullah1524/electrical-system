@@ -6,14 +6,18 @@ import { planImport } from '../import/plan';
 import { readWorkbook } from '../import/xlsx';
 import { runChecks, type CheckResult, type CheckStatus } from '../design/checks';
 import { computeBoards, factorTable, type BoardResult } from '../design/engine';
+import { loadSizingRules, sizeBoards, type BoardSizing } from '../design/selection';
 import type { Board, BoardKind, DemandFactorEntry } from '../design/types';
 import { lookupFrom } from '../library/provenance';
 import { basisText, changeFactor, seedFactors } from '../project/factors';
-import type { Project } from '../project/types';
+import type { FaultDuty, Project, ProjectDetails } from '../project/types';
 import { BoardEditor } from './design/BoardEditor';
+import { GlandsTab } from './design/GlandsTab';
+import { ScheduleTab } from './design/ScheduleTab';
+import { fmt, treeOrder } from './design/tree';
+import { TypicalTab } from './design/TypicalTab';
 
-type Tab = 'boards' | 'factors' | 'settings' | 'checks' | 'import';
-const fmt = (n: number | null | undefined, digits = 2) => (n === null || n === undefined ? '—' : n.toLocaleString('en-US', { maximumFractionDigits: digits }));
+type Tab = 'typical' | 'boards' | 'schedule' | 'glands' | 'factors' | 'settings' | 'checks' | 'import';
 
 export function ProjectDesignPage({ projectId }: { projectId: string }) {
   const project = useLiveQuery(() => db.projects.get(projectId), [projectId]);
@@ -33,10 +37,16 @@ export function ProjectDesignPage({ projectId }: { projectId: string }) {
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
   }
+  const library = lookupFrom(clauses, sources);
+  const rules = loadSizingRules(library);
+  const sizing: Map<string, BoardSizing> = error ? new Map() : sizeBoards(boards, results, rules, { eccPrecedent: project.eccPrecedent150 ?? false });
   const update = (patch: Partial<Project>) => db.projects.update(project.id, { ...patch, updatedAt: new Date().toISOString() });
 
   const labels: Record<Tab, string> = {
+    typical: 'Typical floors',
     boards: 'Boards',
+    schedule: 'Sizing & Excel',
+    glands: 'Glands & lugs',
     factors: `Demand factors (${factors.length})`,
     settings: 'Settings',
     checks: 'Checks',
@@ -56,7 +66,10 @@ export function ProjectDesignPage({ projectId }: { projectId: string }) {
         ))}
       </div>
       {error && <p className="warn">{error}</p>}
+      {tab === 'typical' && <TypicalTab project={project} boards={boards} factors={factors} rules={rules} update={update} />}
       {tab === 'boards' && <BoardsTab project={project} boards={boards} results={results} factors={factors} />}
+      {tab === 'schedule' && <ScheduleTab project={project} boards={boards} results={results} sizing={sizing} factors={factors} clauses={clauses} />}
+      {tab === 'glands' && <GlandsTab project={project} boards={boards} sizing={sizing} library={library} update={update} />}
       {tab === 'factors' && <FactorsTab factors={factors} onChange={(demandFactors) => update({ demandFactors })} seed={() => update({ demandFactors: seedFactors(clauses, factors) })} />}
       {tab === 'settings' && <SettingsTab project={project} update={update} />}
       {tab === 'import' && <ImportTab project={project} boards={boards} factors={factors} />}
@@ -66,7 +79,7 @@ export function ProjectDesignPage({ projectId }: { projectId: string }) {
             error
               ? []
               : runChecks({
-                  library: lookupFrom(clauses, sources),
+                  library,
                   boards,
                   results,
                   pointTypes: project.pointTypes ?? [],
@@ -74,6 +87,8 @@ export function ProjectDesignPage({ projectId }: { projectId: string }) {
                   nocKWByBuilding: project.nocKWByBuilding ?? {},
                   vdCurrentBasis: project.vdCurrentBasis ?? null,
                   factors: factorTable(factors),
+                  unitTypes: project.unitTypes,
+                  eccPrecedent150: project.eccPrecedent150,
                 })
           }
           boards={boards}
@@ -81,23 +96,6 @@ export function ProjectDesignPage({ projectId }: { projectId: string }) {
       )}
     </section>
   );
-}
-
-/** Boards in feeding order: each board is followed by the boards it feeds, indented. */
-function treeOrder(boards: Board[]): { board: Board; depth: number }[] {
-  const ids = new Set(boards.map((b) => b.id));
-  const out: { board: Board; depth: number }[] = [];
-  const walk = (parentId: string | null, depth: number) => {
-    boards
-      .filter((b) => (parentId === null ? !b.parentId || !ids.has(b.parentId) : b.parentId === parentId))
-      .sort((a, b) => a.ref.localeCompare(b.ref, undefined, { numeric: true }))
-      .forEach((b) => {
-        out.push({ board: b, depth });
-        walk(b.id, depth + 1);
-      });
-  };
-  walk(null, 0);
-  return out;
 }
 
 function BoardsTab({ project, boards, results, factors }: { project: Project; boards: Board[]; results: Map<string, BoardResult>; factors: DemandFactorEntry[] }) {
@@ -350,6 +348,75 @@ function SettingsTab({ project, update }: { project: Project; update: (patch: Pa
           <option value="connected">Full connected load of the board</option>
         </select>
       </label>
+      <h2>ECC</h2>
+      <label className="check-label">
+        <input type="checkbox" checked={project.eccPrecedent150 ?? false} onChange={(e) => update({ eccPrecedent150: e.target.checked })} /> Use 70 mm² ECC with 150 mm²
+        cables, as DEWA approved on your reference project (the Building Code's Table G.20 gives 95 mm²)
+      </label>
+
+      <h2>Fault duty on the schedule (kA)</h2>
+      <div className="row">
+        {(
+          [
+            ['lvPanel', 'LV panel incomer'],
+            ['lvWays', 'LV panel ways and SMDB incomers'],
+            ['smdbWays', 'SMDB ways (flat DBs)'],
+          ] as [keyof FaultDuty, string][]
+        ).map(([key, label]) => (
+          <label key={key}>
+            {label}
+            <input
+              type="number"
+              value={project.faultKA?.[key] ?? ''}
+              onChange={(e) => update({ faultKA: { lvPanel: null, lvWays: null, smdbWays: null, ...project.faultKA, [key]: e.target.value ? Number(e.target.value) : null } })}
+            />
+          </label>
+        ))}
+      </div>
+
+      <h2>Title block of the exported schedule</h2>
+      <div className="row">
+        {(
+          [
+            ['consultant', 'Consultant'],
+            ['owner', 'Owner'],
+            ['area', 'Area'],
+            ['plotNo', 'Plot no.'],
+            ['completionDate', 'Planned completion'],
+            ['preparedBy', 'Prepared by'],
+            ['telephone', 'Telephone'],
+            ['fax', 'Fax'],
+            ['revision', 'Revision'],
+            ['date', 'Date'],
+          ] as [keyof ProjectDetails, string][]
+        ).map(([key, label]) => (
+          <label key={key}>
+            {label}
+            <input
+              value={project.details?.[key] ?? ''}
+              onChange={(e) =>
+                update({
+                  details: {
+                    owner: '',
+                    consultant: '',
+                    area: '',
+                    plotNo: '',
+                    completionDate: '',
+                    preparedBy: '',
+                    telephone: '',
+                    fax: '',
+                    revision: '',
+                    date: '',
+                    ...project.details,
+                    [key]: e.target.value,
+                  },
+                })
+              }
+            />
+          </label>
+        ))}
+      </div>
+
       <h2>DEWA NOC connected load</h2>
       <div className="row">
         {buildings.map((b) => (

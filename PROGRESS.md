@@ -10,7 +10,7 @@ details are kept outside this public file, in the gitignored `private/NOTES.md`.
 | M1 | Foundation: PWA shell (phone + laptop), local database, library with review queue, sync client, public-repo guard, CI deploy | **Done 2026-09-17**, except the sync connection test on a real device |
 | M2 | Source registry: confirm current editions on official sites, extract PDF text locally, draft candidate clauses | **In progress**: first pack (7 sources, 26 clauses) done 2026-09-17 |
 | M3 | Load schedule engine (multi-building, standby, DF with source, headroom vs NOC) | **Done 2026-09-18**: engine, checks, audit and screens (boards, editable factor table, settings, checks) |
-| M4 | Calculations: breakers, cables (private data pack), voltage drop, PF correction, fault level, generator check | Data pack started 2026-09-18 (see below) |
+| M4 | Calculations: breakers, cables (private data pack), voltage drop, PF correction, fault level, generator check | **In progress**: automatic sizing chain, typical floors, approved-format Excel and gland/lug list done 2026-09-19 (see below) |
 | M5 | Pre-submission checks, approval pack exports, submission tracker | To do |
 | M6 | Item lookup slice and the pilot project | To do |
 
@@ -109,8 +109,9 @@ Later phases: 2 QA/QC, T&C, handover · 3 MTO and procurement · 4 site executio
 
 ## Rules the user designated (2026-09-18)
 
-- The transformer check uses only a DEWA note the user supplied: four load types with their own
-  factors, kW limits per transformer rating, standby excluded.
+- The transformer check uses only a DEWA note the user supplied. On 2026-09-19 the user changed it to
+  the note's kW limits per transformer rating, set against the LV panel's schedule maximum demand
+  (standby excluded). The note's own load-type factors are no longer used for sizing.
 - Voltage drop uses the mV/A/m values from a DEWA chart the user chose. It is cumulative from the
   point of supply to each circuit end.
 - Load-schedule maximum demand uses the user's demand factors by load type. Spares count in full at
@@ -130,14 +131,50 @@ Later phases: 2 QA/QC, T&C, handover · 3 MTO and procurement · 4 site executio
   is shown), add a board and a way, and see its maximum demand follow the changed factor. Checks
   that wait on unverified clauses show as blocked.
 
+## Automatic sizing chain (done 2026-09-19)
+
+The user chose these rules in two question rounds, after comparing candidates with the approved
+reference schedule. All of them are library clauses the user must verify in Review; a part stays
+blank until its clause is verified.
+- **Breaker:** every board except LV panels takes the next rating at or above
+  TCL × 1.25 × 1.73 A. The ratings are chart B's values.
+- **Cable:** the smallest chart B 4-core XLPE/SWA/PVC row whose breaker capacity and maximum
+  kW cover that breaker and the TCL.
+- **ECC:** Building Code G.4.19.3 / Table G.20, S/2 rounded up. The 70 mm²-for-150 mm² DEWA
+  precedent is available as a project option.
+- **Meters:**
+  - flats get meters chosen from chart B by their TCL;
+  - an LV panel gets a CT meter chosen by its maximum demand.
+- **Transformer:** the smallest size whose DEWA-note limit covers the panel's maximum demand.
+- **ACB:** chosen from the transformer's full-load current.
+- **Sub-board rows at the board above:** (TCL − standby) × row factor, as the approved reference
+  does it. This replaced the earlier cascade of the sub-board's own maximum demand.
+- **Phase imbalance:** under 3% on final DBs and under 10% on SMDBs and MDBs.
+- **Glands and lugs:** the user's rule per run (2 glands and 8 lugs for the 4C cable; 2 LS glands
+  and 2 lugs for the ECC). BW or CW is chosen at each end by location, LSF for fire-rated cables.
+
+Screens:
+- **Typical floors:** flat DB types with R/Y/B kW, and counts per floor. It builds the floor SMDBs
+  under their LV panels, with cyclic phase rotation for balance.
+- **Sizing & Excel:** each board's breaker, cable, ECC, meters, transformer and ACB, and a download
+  of the load schedule in the approved layout. The layout's headings, merges and widths were
+  checked cell by cell against the reference file.
+- **Glands & lugs:** the purchase list and an editable size table. Blanks stay "to confirm".
+
+Checked in the browser on a test tower (7 floors × 17 flats), with no console errors:
+- the plan built 8 boards;
+- sizing: 400 A, 4C 240, ECC 120 per floor; LV panel 1250 kVA, 2000 A ACB, 2000/5 A CT;
+- the purchase list counts;
+- the checks flag the studio and 2BHK imbalance above 3%.
+
 ## Next step
 
-0. DONE 2026-09-19: in-app importer for the pilot consultant's template (panel sheets, links, factor
-   suggestions, arithmetic findings). Tested in Node against the real workbook; not yet tried in the browser.
-1. (was) Importer for the pilot consultant's workbook template, covering SMDB and 3-phase DB sheets.
-   Imported ways get table-linked factors and unset transformer load types for the user to
-   confirm.
-2. Point-type grid for circuits, and exports (load schedule xlsx/PDF in the approved format).
+1. User: verify the new clauses in Review. Then fill in:
+   - the ECC lug holes and the LS gland sizes for ECCs below 120 mm²;
+   - fault duty and the export title block in Settings.
+2. Cable lengths per feeder, feeding voltage drop and cable quantities (metres) for purchase.
+3. Importer for the reference project's consultant template (template A); flat DB circuit grids and their sheets in the export.
+4. MTO for cables, breakers and boards; PR → RFQ → comparison → LPO.
 
 ## Previously planned screens step (kept for reference)
 
